@@ -42,13 +42,13 @@ const plusDays = (n) => {
 /** One block of the review, mirroring a step of the form, with a way back to it. */
 function ReviewSection({ title, onEdit, children }) {
   return (
-    <section className="rounded-lg border border-[#E1E8EF] bg-white">
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-[#E1E8EF]">
-        <h3 className="text-sm font-semibold text-[#142033]">{title}</h3>
+    <section className="rounded-lg border border-[#E1E8EF] dark:border-[#2B3238] bg-white dark:bg-[#1E2124]">
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-[#E1E8EF] dark:border-[#2B3238]">
+        <h3 className="text-sm font-semibold text-[#142033] dark:text-[#F5F7F5]">{title}</h3>
         <button
           type="button"
           onClick={onEdit}
-          className="text-xs font-semibold text-[#4D6600] hover:text-[#3A4D00] hover:underline cursor-pointer"
+          className="text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:text-[#3A4D00] dark:hover:text-[#C5E95A] hover:underline cursor-pointer"
         >
           Edit
         </button>
@@ -65,7 +65,7 @@ function ReviewFacts({ items }) {
       {items.map((f) => (
         <div key={f.label} className={f.wide ? 'col-span-2 sm:col-span-3' : ''}>
           <dt className="text-[11px] font-medium uppercase tracking-wide text-[#70829B]">{f.label}</dt>
-          <dd className={`mt-1 text-sm ${f.value ? 'font-semibold text-[#142033]' : 'text-[#70829B]'}`}>{f.value || 'Not set'}</dd>
+          <dd className={`mt-1 text-sm ${f.value ? 'font-semibold text-[#142033] dark:text-[#F5F7F5]' : 'text-[#70829B]'}`}>{f.value || 'Not set'}</dd>
         </div>
       ))}
     </dl>
@@ -212,23 +212,23 @@ export function CreateBatchPage() {
       <div className="flex items-center gap-3">
         <Link
           to="/dashboard"
-          className="p-2 rounded-full hover:bg-stone-100 text-stone-600 hover:text-stone-950 transition-colors"
+          className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-[#2B3238] text-stone-600 dark:text-[#70829B] hover:text-stone-950 dark:hover:text-[#F5F7F5] transition-colors"
           aria-label="Back to home"
         >
           <ChevronLeft size={20} />
         </Link>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-950 font-heading">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-stone-950 dark:text-[#F5F7F5] font-heading">
             Create New Batch
           </h1>
-          <p className="text-xs sm:text-sm text-stone-500">
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-[#70829B]">
             Set up flock details, housing, and vaccination schedules.
           </p>
         </div>
       </div>
 
       {/* Step Progress Indicator (Matching Reference Image) */}
-      <div className="bg-white border border-stone-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs">
+      <div className="bg-white dark:bg-[#1E2124] border border-stone-200/90 dark:border-[#2B3238] rounded-2xl p-4 sm:p-5 shadow-2xs">
         <div className="grid grid-cols-4 gap-2 text-xs">
           {STEPS.map(step => {
             const isDone = currentStep > step.id;
@@ -241,14 +241,14 @@ export function CreateBatchPage() {
                       ? 'bg-[#DFFF83] text-[#17191A] shadow-xs'
                       : isDone
                       ? 'bg-[#DFFF83] text-[#17191A]'
-                      : 'bg-stone-100 text-stone-400 border border-stone-200'
+                      : 'bg-stone-100 dark:bg-[#2B3238] text-stone-400 dark:text-[#70829B] border border-stone-200 dark:border-[#3A4550]'
                   }`}
                 >
                   {isDone ? <Check size={14} /> : step.id}
                 </div>
                 <span
                   className={`font-semibold truncate hidden sm:inline ${
-                    isCurrent ? 'text-[#4D6600]' : isDone ? 'text-stone-700' : 'text-stone-400'
+                    isCurrent ? 'text-[#4D6600] dark:text-[#DFFF83]' : isDone ? 'text-stone-700 dark:text-[#F5F7F5]' : 'text-stone-400 dark:text-[#70829B]'
                   }`}
                 >
                   {step.label}
@@ -261,10 +261,10 @@ export function CreateBatchPage() {
 
       {/* Step 1: Basic Information */}
       {currentStep === 1 && (
-        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
+        <div className="bg-white dark:bg-[#1E2124] border border-stone-200/90 dark:border-[#2B3238] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-stone-950 font-heading">1. Basic Information</h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+            <h2 className="text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">1. Basic Information</h2>
+            <p className="text-xs sm:text-sm text-stone-500 dark:text-[#70829B] mt-0.5">
               Provide the basic details about your batch.
             </p>
           </div>
@@ -272,7 +272,7 @@ export function CreateBatchPage() {
           <div className="space-y-5">
             {/* Batch Name */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Batch Name <span className="text-rose-500">*</span>
               </label>
               <input
@@ -280,7 +280,7 @@ export function CreateBatchPage() {
                 placeholder="e.g. Layer Batch 1"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                 autoFocus
               />
             </div>
@@ -288,7 +288,7 @@ export function CreateBatchPage() {
             {/* Bird Type + Mandatory Egg Production Callout Card (Matching Reference Image) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
               <div className="lg:col-span-7 space-y-1.5">
-                <label className="text-xs font-bold text-stone-800 block">
+                <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                   Bird Type <span className="text-rose-500">*</span>
                 </label>
                 <select
@@ -299,39 +299,39 @@ export function CreateBatchPage() {
                     setBreedChoice('');
                     setCustomBreed('');
                   }}
-                  className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer"
+                  className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer"
                 >
                   {allBirdTypes().map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
-                <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] hover:underline">
+                <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
                   Keep a bird that isn't listed? Add it in Farm Details
                 </Link>
 
                 <div className="flex items-center gap-2 pt-1 text-xs">
                   {laysEggs(birdType) ? (
-                    <span className="text-[#4D6600] font-semibold flex items-center gap-1">
+                    <span className="text-[#4D6600] dark:text-[#DFFF83] font-semibold flex items-center gap-1">
                       <Check size={14} /> Egg production available
                     </span>
                   ) : (
-                    <span className="text-stone-500 flex items-center gap-1">
+                    <span className="text-stone-500 dark:text-[#70829B] flex items-center gap-1">
                       <Info size={14} /> No egg tracking for {birdTypeLabel(birdType)} batches
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Egg Rule Callout Card (Matching Reference Image right side) */}
-              <div className="lg:col-span-5 bg-[#FFF9F2] border border-[#FEEAD1] rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
-                <div className="p-2 rounded-xl bg-white shadow-2xs shrink-0 text-[#B45309]">
+              {/* Egg Rule Callout Card */}
+              <div className="lg:col-span-5 bg-[#FFF9F2] dark:bg-[#1E2124] border border-[#FEEAD1] dark:border-[#3A4550] rounded-2xl p-4 flex items-start gap-3 shadow-2xs">
+                <div className="p-2 rounded-xl bg-white dark:bg-[#2B3238] shadow-2xs shrink-0 text-[#B45309] dark:text-[#DFFF83]">
                   <BirdIcon size={22} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-stone-950">
+                  <h4 className="text-xs font-bold text-stone-950 dark:text-[#F5F7F5]">
                     {birdTypeLabel(birdType)}: raised for {BIRD_PURPOSES.find((p) => p.value === purpose)?.label.toLowerCase()}
                   </h4>
-                  <p className="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-stone-600 dark:text-[#70829B] mt-1 leading-relaxed">
                     {purpose === 'eggs'
                       ? 'Egg collection is tracked, and performance is judged on how many eggs the flock lays.'
                       : purpose === 'meat'
@@ -347,20 +347,20 @@ export function CreateBatchPage() {
             {/* Date Placed */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-800 block">
+                <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                   Date Placed / Acquired <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all"
+                  className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-stone-100">
+          <div className="flex justify-end pt-4 border-t border-stone-100 dark:border-[#2B3238]">
             <button
               type="button"
               onClick={nextStep}
@@ -375,10 +375,10 @@ export function CreateBatchPage() {
 
       {/* Step 2: Birds & Housing */}
       {currentStep === 2 && (
-        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
+        <div className="bg-white dark:bg-[#1E2124] border border-stone-200/90 dark:border-[#2B3238] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-stone-950 font-heading">2. Birds &amp; Housing</h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+            <h2 className="text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">2. Birds &amp; Housing</h2>
+            <p className="text-xs sm:text-sm text-stone-500 dark:text-[#70829B] mt-0.5">
               Provide relevant information about the birds and where they are kept.
             </p>
           </div>
@@ -387,7 +387,7 @@ export function CreateBatchPage() {
             {/* Number of Birds & Age */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-800 block">
+                <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                   Number of Birds <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -395,12 +395,12 @@ export function CreateBatchPage() {
                   placeholder="e.g. 500"
                   value={birdCount}
                   onChange={e => setBirdCount(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                  className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-800 block">
+                <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                   Age of Birds (at placement)
                 </label>
                 <div className="flex gap-2">
@@ -410,12 +410,12 @@ export function CreateBatchPage() {
                     placeholder="e.g. 24"
                     value={ageValue}
                     onChange={e => setAgeValue(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                    className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                   />
                   <select
                     value={ageUnit}
                     onChange={e => setAgeUnit(e.target.value)}
-                    className="px-3 py-3 bg-white border border-stone-300 rounded-xl text-xs font-semibold text-stone-800 focus:outline-hidden cursor-pointer"
+                    className="px-3 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-xs font-semibold text-stone-800 focus:outline-hidden cursor-pointer"
                   >
                     <option value="weeks">Weeks</option>
                     <option value="days">Days</option>
@@ -426,13 +426,13 @@ export function CreateBatchPage() {
 
             {/* Breed */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Breed <span className="text-rose-500">*</span>
               </label>
               <select
                 value={breedChoice}
                 onChange={e => setBreedChoice(e.target.value)}
-                className={`w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer ${
+                className={`w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer ${
                   breedChoice ? 'text-stone-900' : 'text-stone-400'
                 }`}
               >
@@ -451,21 +451,21 @@ export function CreateBatchPage() {
                   value={customBreed}
                   onChange={e => setCustomBreed(e.target.value)}
                   autoFocus
-                  className="w-full mt-2 px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                  className="w-full mt-2 px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                 />
               )}
             </div>
 
             {/* Pen — picked from the farm's pens; free text only until pens are set up */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Pen / House <span className="text-rose-500">*</span>
               </label>
               {pens.length > 0 ? (
                 <select
                   value={penId}
                   onChange={e => setPenId(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer"
+                  className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all cursor-pointer"
                 >
                   <option value="" disabled>Select a pen</option>
                   {pens.map((p) => {
@@ -485,9 +485,9 @@ export function CreateBatchPage() {
                     placeholder="e.g. Pen A, House 2"
                     value={housing}
                     onChange={e => setHousing(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                    className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                   />
-                  <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] hover:underline">
+                  <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
                     Set up your pens in Farm Details to pick from a list
                   </Link>
                 </>
@@ -495,7 +495,7 @@ export function CreateBatchPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Source Hatchery / Supplier (optional)
               </label>
               <input
@@ -503,12 +503,12 @@ export function CreateBatchPage() {
                 placeholder="e.g. CHI Farms, Zartech, Amo Hatchery"
                 value={hatchery}
                 onChange={e => setHatchery(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Cost of the Birds (₦, optional)
               </label>
               <input
@@ -518,16 +518,16 @@ export function CreateBatchPage() {
                 placeholder="e.g. 450000 for all the birds"
                 value={purchaseCost}
                 onChange={e => setPurchaseCost(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
               />
-              <p className="text-[11px] text-stone-500">
+              <p className="text-[11px] text-stone-500 dark:text-[#70829B]">
                 What you paid for the whole batch. Needed to work out profit when the batch is complete.
               </p>
             </div>
 
             {(purpose === 'meat' || purpose === 'dual') && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-800 block">
+                <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                   Target Slaughter Weight (kg)
                 </label>
                 <input
@@ -536,13 +536,13 @@ export function CreateBatchPage() {
                   placeholder="e.g. 2.5"
                   value={targetWeight}
                   onChange={e => setTargetWeight(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                  className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-stone-800 block">
+              <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
                 Notes
               </label>
               <textarea
@@ -550,16 +550,16 @@ export function CreateBatchPage() {
                 placeholder="Batch specific notes or additional instructions..."
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400"
+                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
               />
             </div>
           </div>
 
-          <div className="flex justify-between pt-4 border-t border-stone-100">
+          <div className="flex justify-between pt-4 border-t border-stone-100 dark:border-[#2B3238]">
             <button
               type="button"
               onClick={prevStep}
-              className="px-6 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-800 font-semibold rounded-xl text-sm transition-all cursor-pointer inline-flex items-center gap-2"
+              className="px-6 py-2.5 border border-stone-300 dark:border-[#3A4550] hover:bg-stone-50 dark:hover:bg-[#2B3238] text-stone-800 dark:text-[#C8D6E5] font-semibold rounded-xl text-sm transition-all cursor-pointer inline-flex items-center gap-2"
             >
               <ChevronLeft size={16} />
               <span>Back</span>
@@ -578,10 +578,10 @@ export function CreateBatchPage() {
 
       {/* Step 3: Vaccination — any number of planned vaccinations */}
       {currentStep === 3 && (
-        <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
+        <div className="bg-white dark:bg-[#1E2124] border border-stone-200/90 dark:border-[#2B3238] rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-fade-in">
           <div>
-            <h2 className="text-xl font-bold text-stone-950 font-heading">3. Vaccination</h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+            <h2 className="text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">3. Vaccination</h2>
+            <p className="text-xs sm:text-sm text-stone-500 dark:text-[#70829B] mt-0.5">
               Plan the vaccinations you already know about. Add as many as you need; you can add more later too.
             </p>
           </div>
@@ -600,7 +600,7 @@ export function CreateBatchPage() {
 
           <div className="space-y-3">
             {vaccinations.length === 0 && (
-              <p className="text-sm text-stone-500 text-center py-4 border border-dashed border-stone-300 rounded-2xl">
+              <p className="text-sm text-stone-500 dark:text-[#70829B] text-center py-4 border border-dashed border-stone-300 dark:border-[#3A4550] rounded-2xl">
                 No vaccinations planned. You can add them later from the batch's Vaccination tab.
               </p>
             )}
@@ -609,16 +609,16 @@ export function CreateBatchPage() {
               const vaccine = findVaccine(row.vaccineName);
               const isOther = row.vaccineName === OTHER_VACCINE;
               return (
-                <div key={row.key} className="border border-stone-200 rounded-2xl p-4 space-y-3">
+                <div key={row.key} className="border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#17191A] rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-2 text-xs font-bold text-stone-800">
-                      <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center text-[11px]">{index + 1}</span>
+                    <span className="inline-flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-[#C8D6E5]">
+                      <span className="w-6 h-6 rounded-full bg-stone-100 dark:bg-[#2B3238] text-stone-600 dark:text-[#70829B] flex items-center justify-center text-[11px]">{index + 1}</span>
                       Vaccination {index + 1}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeVaccination(row.key)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 hover:text-rose-600 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 dark:text-[#70829B] hover:text-rose-600 cursor-pointer"
                       aria-label={`Remove vaccination ${index + 1}`}
                     >
                       <Trash2 size={13} /> Remove
@@ -627,11 +627,11 @@ export function CreateBatchPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div className="sm:col-span-6 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 block">Vaccine</label>
+                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Vaccine</label>
                       <select
                         value={row.vaccineName}
                         onChange={e => updateVaccination(row.key, 'vaccineName', e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] cursor-pointer"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-[#1E2124] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm font-semibold text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] cursor-pointer"
                       >
                         <option value="">Choose a vaccine</option>
                         {vaccineOptions.map((v) => (
@@ -644,26 +644,26 @@ export function CreateBatchPage() {
                           placeholder="Vaccine name"
                           value={row.customName}
                           onChange={e => updateVaccination(row.key, 'customName', e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] placeholder:text-stone-400"
+                          className="w-full px-3.5 py-2.5 bg-white dark:bg-[#1E2124] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                         />
                       )}
                     </div>
                     <div className="sm:col-span-3 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 block">Due date</label>
+                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Due date</label>
                       <input
                         type="date"
                         min={today}
                         value={row.dueDate}
                         onChange={e => updateVaccination(row.key, 'dueDate', e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E]"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-[#1E2124] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E]"
                       />
                     </div>
                     <div className="sm:col-span-3 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 block">Dose <span className="text-rose-500">*</span></label>
+                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Dose <span className="text-rose-500">*</span></label>
                       <select
                         value={row.doseNumber}
                         onChange={e => updateVaccination(row.key, 'doseNumber', e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] cursor-pointer"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-[#1E2124] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm text-stone-900 focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] cursor-pointer"
                       >
                         <option value="">Select dose</option>
                         {DOSE_NUMBERS.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -693,11 +693,11 @@ export function CreateBatchPage() {
             </button>
           </div>
 
-          <div className="flex justify-between pt-4 border-t border-stone-100">
+          <div className="flex justify-between pt-4 border-t border-stone-100 dark:border-[#2B3238]">
             <button
               type="button"
               onClick={prevStep}
-              className="px-6 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-800 font-semibold rounded-xl text-sm transition-all cursor-pointer inline-flex items-center gap-2"
+              className="px-6 py-2.5 border border-stone-300 dark:border-[#3A4550] hover:bg-stone-50 dark:hover:bg-[#2B3238] text-stone-800 dark:text-[#C8D6E5] font-semibold rounded-xl text-sm transition-all cursor-pointer inline-flex items-center gap-2"
             >
               <ChevronLeft size={16} />
               <span>Back</span>
@@ -734,7 +734,7 @@ export function CreateBatchPage() {
         return (
           <div className="space-y-5 animate-fade-in">
             {/* Summary hero */}
-            <div className="rounded-xl overflow-hidden border border-[#E1E8EF] bg-white">
+            <div className="rounded-xl overflow-hidden border border-[#E1E8EF] dark:border-[#2B3238] bg-white dark:bg-[#1E2124]">
               <div className="relative h-44 sm:h-52">
                 <img src={batchImage({ type: birdType })} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#17191A]/85 via-[#17191A]/35 to-transparent" />
@@ -755,11 +755,11 @@ export function CreateBatchPage() {
               </div>
 
               {/* Key numbers */}
-              <dl className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[#E1E8EF]">
+              <dl className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[#E1E8EF] dark:divide-[#2B3238]">
                 {stats.map((s) => (
                   <div key={s.label} className="px-4 sm:px-5 py-4">
                     <dt className="text-[11px] font-medium uppercase tracking-wide text-[#70829B]">{s.label}</dt>
-                    <dd className="mt-1 text-xl font-semibold text-[#142033] font-heading tabular-nums">
+                    <dd className="mt-1 text-xl font-semibold text-[#142033] dark:text-[#F5F7F5] font-heading tabular-nums">
                       {s.value}
                       {s.unit && <span className="ml-1 text-xs font-medium text-[#70829B]">{s.unit}</span>}
                     </dd>
@@ -838,7 +838,7 @@ export function CreateBatchPage() {
               <button
                 type="button"
                 onClick={prevStep}
-                className="px-5 py-3 border border-[#E1E8EF] hover:bg-stone-50 text-[#142033] font-semibold rounded-lg text-sm transition-colors cursor-pointer inline-flex items-center gap-2"
+                className="px-5 py-3 border border-[#E1E8EF] dark:border-[#3A4550] hover:bg-stone-50 dark:hover:bg-[#2B3238] text-[#142033] dark:text-[#C8D6E5] font-semibold rounded-lg text-sm transition-colors cursor-pointer inline-flex items-center gap-2"
               >
                 <ChevronLeft size={16} />
                 <span>Back</span>

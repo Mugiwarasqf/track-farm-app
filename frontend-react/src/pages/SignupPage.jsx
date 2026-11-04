@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ArrowRight, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isValidEmailFormat, passwordError, suggestEmailCorrection } from '../lib/authValidation';
 import { SUPPORT_WHATSAPP_URL } from '../lib/support';
@@ -8,10 +8,12 @@ import { SUPPORT_WHATSAPP_URL } from '../lib/support';
 export function SignupPage({ onBack }) {
   const navigate = useNavigate();
   const { authLoading, authError, signup, setAuthError } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(true);
   const [dismissedSuggestion, setDismissedSuggestion] = useState('');
 
   const handleBack = () => {
@@ -19,10 +21,6 @@ export function SignupPage({ onBack }) {
     else navigate('/');
   };
 
-  // Non-blocking nudge, not a gate -- plenty of real addresses use a
-  // domain outside the short common list this checks against. Cleared the
-  // moment the farmer accepts it or types something else, so it never
-  // reappears for an address they've already looked at once.
   const suggestion = useMemo(() => {
     const s = suggestEmailCorrection(email);
     return s && s !== dismissedSuggestion ? s : null;
@@ -35,82 +33,108 @@ export function SignupPage({ onBack }) {
     if (!email.trim() || !isValidEmailFormat(email)) {
       return setAuthError('Enter a valid email address');
     }
-    if (email.trim() !== confirmEmail.trim()) {
-      return setAuthError('Emails do not match');
-    }
     const pErr = passwordError(password);
     if (pErr) return setAuthError(pErr);
-    if (password !== confirmPassword) {
-      return setAuthError('Passwords do not match');
+    if (!agreeTerms) {
+      return setAuthError('Please agree to the Terms & Conditions to continue');
     }
+
+    // Save farmer name if provided for smooth onboarding prefill
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    if (fullName) {
+      localStorage.setItem('farmbook_farmername', fullName);
+    }
+
     const ok = await signup(email.trim(), password);
     if (ok) navigate('/onboarding');
   };
 
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row selection:bg-neutral-900 selection:text-white">
-      {/* Left Column: Visual Brand Card (Desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[52%] p-4 lg:p-6 flex-col">
-        <div className="relative w-full h-full min-h-[calc(100vh-3rem)] rounded-3xl overflow-hidden bg-neutral-950 flex flex-col justify-between p-10 xl:p-12 text-white shadow-2xl border border-neutral-800">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-85 transition-transform duration-1000 ease-out hover:scale-105"
-            style={{ backgroundImage: "url('/images/irvan-maulana-ENQIxReDFKE-unsplash.jpg')" }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/95 via-neutral-950/40 to-neutral-950/30" />
+    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row selection:bg-[#174b35] selection:text-white">
+      {/* Left Column: Full-Bleed Visual Image Panel (Desktop) */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[50%] relative flex-col justify-between p-10 xl:p-14 text-white overflow-hidden bg-neutral-900">
+        {/* Natural photo with light blur, no heavy green overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center blur-[2.5px] scale-105"
+          style={{
+            backgroundImage: "url('/images/signup.avif')",
+          }}
+        />
+        {/* Soft neutral dark scrim for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/15" />
 
-          <div className="relative z-10">
-            <a href="/" className="inline-flex items-center gap-1.5 focus:outline-hidden">
-              <span className="text-[24px] font-bold tracking-tight text-white">
-                Track<span className="text-emerald-500">Farm</span>
-              </span>
-            </a>
-          </div>
+        {/* Top Header inside Left Card (Back link) */}
+        <div className="relative z-10 flex items-center justify-end w-full">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/25 hover:bg-black/40 text-white text-xs font-medium backdrop-blur-md border border-white/20 transition-all cursor-pointer group"
+          >
+            <span>Back to website</span>
+            <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
 
-          <div className="relative z-10 space-y-5 max-w-lg">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur-md border border-white/15">
-              <span>🇳🇬</span>
-              <span>Modern Poultry Tracking for Nigeria</span>
-            </div>
-            <h2 className="text-2xl xl:text-3xl font-bold tracking-tight text-white leading-snug">
-              Set up your farm in under a minute.
-            </h2>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              One account, every batch tracked: mortality, feed, eggs, vaccinations, and profit.
-            </p>
+        {/* Bottom Headline & Highlights inside Left Card */}
+        <div className="relative z-10 max-w-lg space-y-4">
+          <div className="h-1 w-12 rounded-full bg-[#d9ed69]" />
+          <h2 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold tracking-tight text-white leading-[1.2] font-heading">
+            Capturing Every Flock's Potential.
+          </h2>
+          <p className="text-sm xl:text-base text-neutral-200 leading-relaxed font-normal">
+            Join modern poultry managers replacing messy paper records with automated mortality logs, FCR calculations, and vaccination reminders.
+          </p>
+
+          <div className="pt-2 flex items-center gap-3 text-xs text-neutral-300">
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[#d9ed69] font-bold">✓</span> 100% Free to Start
+            </span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[#d9ed69] font-bold">✓</span> Setup in 60 Seconds
+            </span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-[#d9ed69] font-bold">✓</span> Works on Any Phone
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Right Column: Form */}
-      <div className="flex-1 flex flex-col justify-between px-6 py-6 sm:px-12 lg:px-14 xl:px-20 bg-white">
-        <div className="flex items-center justify-between w-full">
+      {/* Right Column: Authentication Form */}
+      <div className="flex-1 lg:w-1/2 xl:w-[50%] flex flex-col justify-between px-6 py-8 sm:px-12 lg:px-16 xl:px-20 bg-white">
+        {/* Mobile top navigation bar */}
+        <div className="flex items-center justify-between w-full lg:hidden mb-4">
           <button
             onClick={handleBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-950 transition-colors cursor-pointer group"
+            className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
           >
-            <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
-            <span>Back to homepage</span>
+            <ChevronLeft size={16} />
+            <span>Back</span>
           </button>
-          <div className="lg:hidden">
-            <a href="/" className="flex items-center gap-1">
-              <span className="text-[20px] font-bold tracking-tight text-neutral-900">
-                Track<span className="text-emerald-600">Farm</span>
-              </span>
-            </a>
-          </div>
         </div>
 
-        <div className="w-full max-w-md mx-auto my-auto py-10 sm:py-14">
+        {/* Center Form Container */}
+        <div className="w-full max-w-md mx-auto my-auto py-6 sm:py-8">
           <div className="space-y-6">
+            {/* Logo placed directly above Create an account */}
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-                Get started
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-950 mt-1">
-                Create your account
+              {/* <Link to="/" className="inline-block mb-5 focus:outline-hidden">
+                <img
+                  src="/images/track-farm-logo-horizontal.png"
+                  alt="Track Farm"
+                  width={470}
+                  height={96}
+                  className="h-9 sm:h-10 w-auto"
+                /> */}
+              {/* </Link> */}
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-950 font-heading">
+                Create an account
               </h1>
-              <p className="text-sm text-neutral-600 mt-2 leading-relaxed">
-                You'll be taken straight into setting up your farm.
+              <p className="text-sm text-neutral-500 mt-2 leading-relaxed">
+                Already have an account?{' '}
+                <Link to="/login" className="font-semibold text-[#174b35] hover:underline">
+                  Log in
+                </Link>
               </p>
             </div>
 
@@ -122,27 +146,73 @@ export function SignupPage({ onBack }) {
                 </div>
               )}
 
+              {/* First Name & Last Name (Side by Side) */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-700 block" htmlFor="signup-firstname">
+                    First name
+                  </label>
+                  <div className="relative flex items-center">
+                    <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center justify-center">
+                      <User size={16} />
+                    </div>
+                    <input
+                      id="signup-firstname"
+                      className="w-full pl-9 pr-3 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:border-[#174b35] focus:ring-1 focus:ring-[#174b35] transition-all placeholder:text-neutral-400"
+                      type="text"
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      disabled={authLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-neutral-700 block" htmlFor="signup-lastname">
+                    Last name
+                  </label>
+                  <input
+                    id="signup-lastname"
+                    className="w-full px-3.5 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:border-[#174b35] focus:ring-1 focus:ring-[#174b35] transition-all placeholder:text-neutral-400"
+                    type="text"
+                    placeholder="Last name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    disabled={authLoading}
+                  />
+                </div>
+              </div>
+
+              {/* Email Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800 block" htmlFor="signup-email">
-                  Email address
+                <label className="text-xs font-semibold text-neutral-700 block" htmlFor="signup-email">
+                  Email
                 </label>
-                <input
-                  id="signup-email"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-[#0D5C3A]/15 focus:border-[#0D5C3A] transition-all placeholder:text-neutral-400"
-                  type="email"
-                  placeholder="farmer@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  autoFocus
-                  disabled={authLoading}
-                />
+                <div className="relative flex items-center">
+                  <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center justify-center">
+                    <Mail size={17} />
+                  </div>
+                  <input
+                    id="signup-email"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:border-[#174b35] focus:ring-1 focus:ring-[#174b35] transition-all placeholder:text-neutral-400"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={authLoading}
+                  />
+                </div>
                 {suggestion && (
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-amber-700 mt-1">
                     Did you mean{' '}
                     <button
                       type="button"
                       className="font-semibold underline underline-offset-2 cursor-pointer"
-                      onClick={() => { setEmail(suggestion); setDismissedSuggestion(suggestion); }}
+                      onClick={() => {
+                        setEmail(suggestion);
+                        setDismissedSuggestion(suggestion);
+                      }}
                     >
                       {suggestion}
                     </button>
@@ -151,63 +221,59 @@ export function SignupPage({ onBack }) {
                 )}
               </div>
 
+              {/* Password Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800 block" htmlFor="signup-confirm-email">
-                  Confirm email address
-                </label>
-                <input
-                  id="signup-confirm-email"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-[#0D5C3A]/15 focus:border-[#0D5C3A] transition-all placeholder:text-neutral-400"
-                  type="email"
-                  placeholder="Type it again"
-                  value={confirmEmail}
-                  onChange={e => setConfirmEmail(e.target.value)}
-                  disabled={authLoading}
-                />
-                {confirmEmail && confirmEmail.trim() !== email.trim() && (
-                  <p className="text-xs text-amber-700">Emails don't match yet</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800 block" htmlFor="signup-password">
+                <label className="text-xs font-semibold text-neutral-700 block" htmlFor="signup-password">
                   Password
                 </label>
-                <input
-                  id="signup-password"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-[#0D5C3A]/15 focus:border-[#0D5C3A] transition-all placeholder:text-neutral-400"
-                  type="password"
-                  placeholder="At least 8 characters"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={authLoading}
-                />
-                <p className={`text-xs ${pwError ? 'text-amber-700' : 'text-neutral-400'}`}>
+                <div className="relative flex items-center">
+                  <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center justify-center">
+                    <Lock size={17} />
+                  </div>
+                  <input
+                    id="signup-password"
+                    className="w-full pl-10 pr-11 py-3 bg-white border border-neutral-200 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:border-[#174b35] focus:ring-1 focus:ring-[#174b35] transition-all placeholder:text-neutral-400"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={authLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3.5 text-neutral-400 hover:text-neutral-600 transition-colors p-1 cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className={`text-[11px] ${pwError ? 'text-amber-700' : 'text-neutral-400'}`}>
                   {pwError || 'At least 8 characters, with a letter and a number'}
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-neutral-800 block" htmlFor="signup-confirm-password">
-                  Confirm password
-                </label>
+              {/* Terms & Conditions Checkbox */}
+              <div className="flex items-start gap-2.5 pt-1">
                 <input
-                  id="signup-confirm-password"
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-300 rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-[#0D5C3A]/15 focus:border-[#0D5C3A] transition-all placeholder:text-neutral-400"
-                  type="password"
-                  placeholder="Type it again"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  disabled={authLoading}
+                  id="agree-terms"
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-[#174b35] focus:ring-[#174b35] accent-[#174b35] cursor-pointer"
                 />
-                {confirmPassword && confirmPassword !== password && (
-                  <p className="text-xs text-amber-700">Passwords don't match yet</p>
-                )}
+                <label htmlFor="agree-terms" className="text-xs text-neutral-600 leading-tight cursor-pointer select-none">
+                  I agree to the{' '}
+                  <span className="text-[#174b35] font-semibold hover:underline">
+                    Terms & Conditions
+                  </span>
+                </label>
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 px-5 bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white font-semibold rounded-full shadow-sm text-sm transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full mt-2 py-3.5 px-5 bg-[#174b35] hover:bg-[#0f3825] active:bg-[#092518] text-white font-semibold rounded-xl shadow-sm text-sm transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 disabled={authLoading}
               >
                 {authLoading ? (
@@ -216,25 +282,21 @@ export function SignupPage({ onBack }) {
                     <span>Creating your account…</span>
                   </>
                 ) : (
-                  <>
-                    <span>Create account</span>
-                    <span className="text-base leading-none">→</span>
-                  </>
+                  <span>Create account</span>
                 )}
               </button>
-
-              <div className="pt-2 text-center text-xs text-neutral-500">
-                Already have an account?{' '}
-                <Link to="/login" className="font-medium text-neutral-800 hover:text-neutral-950 hover:underline">
-                  Sign in
-                </Link>
-              </div>
             </form>
           </div>
         </div>
 
+        {/* Footer */}
         <div className="pt-6 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-400">
-          <a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-neutral-700 hover:underline">
+          <a
+            href={SUPPORT_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-neutral-700 hover:underline"
+          >
             Need help? Message us on WhatsApp
           </a>
           <div>© {new Date().getFullYear()} TrackFarm</div>

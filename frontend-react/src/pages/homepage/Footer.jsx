@@ -142,11 +142,11 @@ export default function Footer() {
                   TrackFarm.cc
                 </div>
                 <div className="flex items-center gap-1.5 md:justify-end text-xs text-stone-300">
-                  <MapPin size={13} className="text-emerald-400 shrink-0" />
+                  <MapPin size={13} className="text-[#d9ed69] shrink-0" />
                   <span>Ikorodu & Lagos, Nigeria ↗</span>
                 </div>
                 <div className="flex items-center gap-1.5 md:justify-end text-xs text-stone-300">
-                  <Mail size={13} className="text-emerald-400 shrink-0" />
+                  <Mail size={13} className="text-[#d9ed69] shrink-0" />
                   <a href="mailto:hello@trackfarm.cc" className="hover:text-white transition-colors">
                     hello@trackfarm.cc
                   </a>
@@ -167,7 +167,7 @@ export default function Footer() {
           
           {/* User's requested tagline: "TrackFarm helps farmers turn daily records into real profit" */}
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-            <p className="text-xs sm:text-sm font-medium text-emerald-300 tracking-tight">
+            <p className="text-xs sm:text-sm font-medium text-[#d9ed69] tracking-tight">
               TrackFarm helps farmers turn daily records into real profit
             </p> 
             <span className="hidden sm:inline text-white/30 text-sm">|</span>

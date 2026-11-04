@@ -119,7 +119,7 @@ export function NotificationBell() {
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
-            className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-stone-900 dark:bg-[#DFFF83] text-white dark:text-[#17191A] text-[10px] font-semibold leading-4 text-center tabular-nums ring-2 ring-white dark:ring-[#17191A]"
+            className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4 text-center tabular-nums ring-2 ring-white dark:ring-[#17191A]"
           >
             {badgeCount(unreadCount)}
           </span>

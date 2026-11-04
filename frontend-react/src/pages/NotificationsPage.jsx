@@ -105,8 +105,8 @@ export function NotificationsPage() {
                 {c.label}
                 {unread > 0 && (
                   <span
-                    className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold leading-5 text-center tabular-nums ${
-                      selected ? 'bg-white/20 text-white' : 'bg-white text-stone-600'
+                    className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold leading-5 text-center tabular-nums ${
+                      selected ? 'bg-[#17191A]/20 text-[#17191A]' : 'bg-red-500 text-white'
                     }`}
                   >
                     {unread}

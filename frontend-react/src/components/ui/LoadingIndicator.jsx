@@ -5,18 +5,26 @@ const SLOW_AFTER_MS = 4000;
 
 /**
  * The app's full-page loading screen: an advanced multi-ring spinner with a
- * pulsing logo, lime accent glow, and a subtle status line.
+ * counting number in the center and a subtle status line.
  *
  * @param {Object} props
  * @param {string} [props.label]  What's loading, shown and read out.
  */
 export function LoadingIndicator({ label = 'Loading' }) {
   const [slow, setSlow] = useState(false);
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => setSlow(true), SLOW_AFTER_MS);
-    return () => clearTimeout(timer);
+    const slowTimer = setTimeout(() => setSlow(true), SLOW_AFTER_MS);
+    return () => clearTimeout(slowTimer);
   }, []);
+
+  // Count from 0 → 99 over ~3 s (every 30 ms), then hold at 99
+  useEffect(() => {
+    if (count >= 99) return;
+    const step = setTimeout(() => setCount((c) => Math.min(c + 1, 99)), 30);
+    return () => clearTimeout(step);
+  }, [count]);
 
   return (
     <div
@@ -25,7 +33,7 @@ export function LoadingIndicator({ label = 'Loading' }) {
       aria-busy="true"
       className="flex flex-col items-center gap-8"
     >
-      {/* Advanced multi-ring spinner */}
+      {/* Multi-ring spinner with counter in center */}
       <div className="relative w-20 h-20 flex items-center justify-center">
         {/* Outer ring — slow */}
         <span
@@ -45,13 +53,13 @@ export function LoadingIndicator({ label = 'Loading' }) {
           className="absolute inset-[14px] rounded-full border-2 border-[#17191A]/10 border-t-[#17191A]/60 animate-spin"
           style={{ animationDuration: '0.7s' }}
         />
-        {/* Logo in center */}
-        <img
-          src="/icon/logo.png"
-          alt="TrackFarm"
-          className="w-7 h-7 object-contain select-none mix-blend-multiply animate-pulse"
-          draggable="false"
-        />
+        {/* Incrementing counter */}
+        <span
+          aria-hidden="true"
+          className="text-[13px] font-bold tabular-nums text-gray-600 dark:text-white select-none"
+        >
+          {count}%
+        </span>
       </div>
 
       {/* Status text */}

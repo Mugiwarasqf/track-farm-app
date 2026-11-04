@@ -65,11 +65,11 @@ const TABS = [
 function HeaderStat({ icon: Icon, label, value }) {
   return (
     <div className="px-3 sm:px-5 first:pl-0 last:pr-0 min-w-0">
-      <div className="flex items-center gap-1.5 sm:gap-2 text-stone-500">
-        <Icon size={15} strokeWidth={2.5} className="text-stone-700 shrink-0" />
+      <div className="flex items-center gap-1.5 sm:gap-2 text-stone-500 dark:text-[#94A3B8]">
+        <Icon size={15} strokeWidth={2.5} className="text-stone-700 dark:text-[#DFFF83] shrink-0" />
         <span className="text-[11px] sm:text-xs truncate">{label}</span>
       </div>
-      <div className="text-lg sm:text-xl font-bold text-stone-950 font-heading mt-1 whitespace-nowrap">{value}</div>
+      <div className="text-lg sm:text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mt-1 whitespace-nowrap">{value}</div>
     </div>
   );
 }
@@ -731,7 +731,7 @@ export function BatchDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5">
+      <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
         <div className="flex flex-col lg:flex-row lg:items-center gap-5">
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <img
@@ -797,13 +797,13 @@ export function BatchDetailPage() {
                 onClick={() => setShowDeleteModal(true)}
                 aria-label={`Delete ${batch.name}`}
                 title={`Delete ${batch.name}`}
-                className="w-8 h-8 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Trash2 size={15} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 sm:flex items-stretch divide-x divide-stone-200">
+            <div className="grid grid-cols-3 sm:flex items-stretch divide-x divide-stone-200 dark:divide-[#2B3238]">
               <HeaderStat icon={BirdIcon} label="Total Birds" value={Number(batch.birdCount || 0).toLocaleString()} />
               {closed && batch.birdsSold != null ? (
                 <HeaderStat icon={ShoppingCart} label="Birds Sold" value={Number(batch.birdsSold).toLocaleString()} />
@@ -847,8 +847,8 @@ export function BatchDetailPage() {
         <div className="space-y-5 min-w-0">
           {activeTab === 'overview' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Batch Summary</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Batch Summary</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                   <SummaryTile
                     icon={Percent}
@@ -897,14 +897,14 @@ export function BatchDetailPage() {
                 </div>
               </div>
               {/* Production: the one trend that matters for this bird type, as recorded. No rating. */}
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-base font-bold text-stone-950 font-heading">{productionTitle}</h2>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{productionTitle}</h2>
                   {(purpose === 'meat' || purpose === 'dual') && !closed && (
                     <button
                       type="button"
                       onClick={() => setShowCompleteModal(true)}
-                      className="text-[11px] font-semibold text-[#4D6600] hover:underline cursor-pointer shrink-0"
+                      className="text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer shrink-0"
                     >
                       Record sales to see profit
                     </button>
@@ -912,23 +912,23 @@ export function BatchDetailPage() {
                 </div>
 
                 {loading ? (
-                  <div className="mt-4 h-40 rounded-lg bg-stone-100 animate-pulse" />
+                  <div className="mt-4 h-40 rounded-lg bg-stone-100 dark:bg-[#252A2E] animate-pulse" />
                 ) : production.empty ? (
-                  <p className="mt-3 text-sm text-stone-500">{production.empty}</p>
+                  <p className="mt-3 text-sm text-stone-500 dark:text-[#94A3B8]">{production.empty}</p>
                 ) : (
                   <>
                     <div className="mt-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
                       <div>
-                        <div className="text-xs text-stone-500">
+                        <div className="text-xs text-stone-500 dark:text-[#94A3B8]">
                           {production.title} · {production.caption}
                         </div>
                         <div className="mt-1 flex items-baseline gap-1.5">
-                          <span className="text-3xl font-semibold font-heading text-stone-950 tabular-nums leading-none">{production.value}</span>
-                          <span className="text-sm text-stone-500">{production.suffix}</span>
+                          <span className="text-3xl font-semibold font-heading text-stone-950 dark:text-[#F5F7F5] tabular-nums leading-none">{production.value}</span>
+                          <span className="text-sm text-stone-500 dark:text-[#94A3B8]">{production.suffix}</span>
                         </div>
                       </div>
                       {production.change && (
-                        <span className={`inline-flex items-center gap-1 text-xs ${production.change.up ? 'text-[#4D6600]' : 'text-rose-600'}`}>
+                        <span className={`inline-flex items-center gap-1 text-xs ${production.change.up ? 'text-[#4D6600] dark:text-[#DFFF83]' : 'text-rose-600 dark:text-rose-400'}`}>
                           {production.change.up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
                           {production.change.text}
                         </span>
@@ -936,10 +936,10 @@ export function BatchDetailPage() {
                     </div>
 
                     {production.extras?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-stone-500">
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-stone-500 dark:text-[#94A3B8]">
                         {production.extras.map((x) => (
                           <span key={x.label}>
-                            {x.label}: <strong className="font-semibold text-stone-900">{x.value}</strong>
+                            {x.label}: <strong className="font-semibold text-stone-900 dark:text-[#F5F7F5]">{x.value}</strong>
                           </span>
                         ))}
                       </div>
@@ -949,15 +949,15 @@ export function BatchDetailPage() {
                       {production.points ? (
                         <LineChart points={production.points} formatTick={production.formatTick} />
                       ) : (
-                        <p className="text-sm text-stone-500">{production.thin}</p>
+                        <p className="text-sm text-stone-500 dark:text-[#94A3B8]">{production.thin}</p>
                       )}
                     </div>
                   </>
                 )}
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Key Insights</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Key Insights</h2>
                 <div>
                   {isLayer ? (
                     <InsightRow
@@ -987,8 +987,8 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'logs' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Daily Logs</h2>
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+              <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Daily Logs</h2>
               {dailyLogs.length === 0 ? (
                 <EmptyState icon={Activity} title="Nothing recorded for this batch yet." />
               ) : (
@@ -1009,13 +1009,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'feed' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Feed Record</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Feed Record</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('feed')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Log Feed
                 </button>
@@ -1041,21 +1041,21 @@ export function BatchDetailPage() {
 
           {activeTab === 'vaccines' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                  <h2 className="text-base font-bold text-stone-950 font-heading">Vaccination Calendar</h2>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Vaccination Calendar</h2>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => openVaccination({ mode: 'record' })}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                     >
                       <CheckCircle2 size={14} strokeWidth={2.5} /> Record Given
                     </button>
                     <button
                       type="button"
                       onClick={() => openVaccination({ mode: 'schedule' })}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                     >
                       <Plus size={14} strokeWidth={2.5} /> Schedule
                     </button>
@@ -1081,7 +1081,7 @@ export function BatchDetailPage() {
                       <button
                         type="button"
                         onClick={() => setLogModal('multivitamin')}
-                        className="px-2.5 h-7 rounded-lg border border-stone-200 hover:border-[#D2EC7A] text-stone-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 h-7 rounded-lg border border-stone-200 dark:border-[#2B3238] hover:border-[#D2EC7A] dark:hover:border-[#B7DA3E]/40 text-stone-700 dark:text-[#94A3B8] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                       >
                         <Plus size={12} /> Vitamin
                       </button>
@@ -1090,8 +1090,8 @@ export function BatchDetailPage() {
                 />
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Due</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Due</h2>
                 {dueVaccines.length === 0 ? (
                   <EmptyState icon={VaccineIcon} title="No vaccinations due." description="Schedule the next one so you get a reminder." />
                 ) : (
@@ -1099,25 +1099,25 @@ export function BatchDetailPage() {
                     {dueVaccines.map((item) => {
                       const overdue = item.status === 'missed' || item.dueDate < todayIso;
                       return (
-                        <div key={item.scheduleId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 py-3.5 border-b border-stone-100 last:border-0">
+                        <div key={item.scheduleId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 py-3.5 border-b border-stone-100 dark:border-[#2B3238] last:border-0">
                           <div className="flex items-start sm:items-center gap-3 min-w-0">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${overdue ? 'bg-rose-50' : 'bg-[#F7FFE0]'}`}>
-                              <VaccineIcon size={16} strokeWidth={2.5} className={overdue ? 'text-rose-600' : 'text-[#4D6600]'} />
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${overdue ? 'bg-rose-50 dark:bg-rose-950/30' : 'bg-[#F7FFE0] dark:bg-[#252A2E]'}`}>
+                              <VaccineIcon size={16} strokeWidth={2.5} className={overdue ? 'text-rose-600 dark:text-rose-400' : 'text-[#4D6600] dark:text-[#DFFF83]'} />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-stone-900 break-words">
+                              <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] break-words">
                                 {item.vaccineName}{item.doseNumber ? ` · ${item.doseNumber}` : ''}
                               </div>
-                              <div className={`text-xs ${overdue ? 'text-rose-600 font-semibold' : 'text-stone-500'}`}>
+                              <div className={`text-xs ${overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-stone-500 dark:text-[#94A3B8]'}`}>
                                 {overdue ? 'Overdue since ' : 'Due '}{formatDate(item.dueDate)}
-                                {ROUTES[item.route] && <span className="text-stone-500 font-normal"> · {ROUTES[item.route].label}</span>}
+                                {ROUTES[item.route] && <span className="text-stone-500 dark:text-[#94A3B8] font-normal"> · {ROUTES[item.route].label}</span>}
                               </div>
                             </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => recordScheduled(item)}
-                            className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#D2EC7A] text-[#4D6600] hover:bg-[#F7FFE0] transition-colors cursor-pointer shrink-0"
+                            className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#D2EC7A] dark:border-[#B7DA3E]/40 text-[#4D6600] dark:text-[#DFFF83] hover:bg-[#F7FFE0] dark:hover:bg-[#252A2E] transition-colors cursor-pointer shrink-0"
                           >
                             Record as given
                           </button>
@@ -1128,8 +1128,8 @@ export function BatchDetailPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Vaccination History</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Vaccination History</h2>
                 {vaccinationHistory.length === 0 ? (
                   <EmptyState icon={VaccineIcon} title="No vaccinations recorded for this batch yet." />
                 ) : (
@@ -1156,13 +1156,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'multivitamins' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Vitamins &amp; Supplements</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Vitamins &amp; Supplements</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('multivitamin')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Record Vitamin
                 </button>
@@ -1204,13 +1204,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'mortality' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Mortality</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Mortality</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('mortality')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Log Mortality
                 </button>
@@ -1236,13 +1236,13 @@ export function BatchDetailPage() {
 
           {activeTab === 'weight' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                  <h2 className="text-base font-bold text-stone-950 font-heading">Weight Summary</h2>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Weight Summary</h2>
                   <button
                     type="button"
                     onClick={() => setLogModal('weight')}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                   >
                     <Plus size={14} strokeWidth={2.5} /> Log Weight
                   </button>
@@ -1275,8 +1275,8 @@ export function BatchDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Weigh-ins</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Weigh-ins</h2>
                 {weightHistory.length === 0 ? (
                   <EmptyState
                     icon={WeightIcon}
@@ -1308,8 +1308,8 @@ export function BatchDetailPage() {
         {/* Right column. Quick Actions sits at the top now that Recent
             Activity is gone, with the tab's own report below it. */}
         <div className="space-y-5">
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Quick Actions</h2>
+          <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+            <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
               <QuickAction icon={FeedIcon} label="Log Feed" onClick={() => setLogModal('feed')} />
               <QuickAction icon={PillIcon} label="Log Vitamin" onClick={() => setLogModal('multivitamin')} />
@@ -1328,24 +1328,24 @@ export function BatchDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Documents</h2>
+          <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+            <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Documents</h2>
             <button
               type="button"
               onClick={handleDownload}
               className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
-                  <FileText size={18} strokeWidth={2.5} className="text-stone-600" />
+                <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-[#252A2E] flex items-center justify-center shrink-0">
+                  <FileText size={18} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-stone-900 truncate">{report.title}</div>
-                  <div className="text-xs text-stone-500 truncate">{report.subtitle}</div>
+                  <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] truncate">{report.title}</div>
+                  <div className="text-xs text-stone-500 dark:text-[#94A3B8] truncate">{report.subtitle}</div>
                 </div>
               </div>
-              <span className="w-9 h-9 rounded-lg border border-stone-200 flex items-center justify-center shrink-0 group-hover:bg-stone-50 transition-colors">
-                <Download size={16} strokeWidth={2.5} className="text-stone-600" />
+              <span className="w-9 h-9 rounded-lg border border-stone-200 dark:border-[#2B3238] flex items-center justify-center shrink-0 group-hover:bg-stone-50 dark:group-hover:bg-[#252A2E] transition-colors">
+                <Download size={16} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
               </span>
             </button>
           </div>

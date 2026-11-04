@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ChartLine,
@@ -25,6 +25,7 @@ import { buildHealthEvents } from '../lib/healthEvents';
 import { loadSupplements, toIso } from '../lib/supplements';
 import {
   batchAge,
+  batchImage,
   birdPurpose,
   birdTypeLabel,
   computeFCR,
@@ -48,11 +49,10 @@ import { BatchIcon } from '../components/ui/BatchIcon';
 import { HistoryIcon } from '../components/ui/HistoryIcon';
 import { CalendarIcon } from '../components/ui/CalendarIcon';
 
-// The dashboard is a summary: two batches here, the full list on /batches.
-const MAX_VISIBLE_BATCHES = 2;
-const ACTIVITY_COLLAPSED = 3;
+// The dashboard is a summary: three batches here plus a "More" card, the full list on /batches.
+const MAX_VISIBLE_BATCHES = 3;
+const ACTIVITY_COLLAPSED = 4;
 const ACTIVITY_EXPANDED = 10;
-const BATCH_BANNER = '/birds/jaclou-dl-hens-3420126_1920.jpg';
 // "Record Vaccination" opens the existing form already in record mode.
 const RECORD_PREFILL = { mode: 'record' };
 const FIRST_BATCH_DISMISSED_KEY = 'farmbook_first_batch_prompt_dismissed';
@@ -63,7 +63,7 @@ const isActive = (b) => (b.status || 'active') !== 'closed';
 
 function Card({ className = '', children }) {
   return (
-    <section className={`bg-white dark:bg-[#17191A] rounded-lg border border-[#E1E8EF] dark:border-[#2B3238] shadow-[0_1px_2px_rgba(20,32,51,0.04)] transition-colors ${className}`}>
+    <section className={`bg-white dark:bg-[#17191A] rounded-2xl border border-[#E1E8EF] dark:border-[#2B3238] shadow-[0_1px_3px_rgba(20,32,51,0.05)] transition-colors ${className}`}>
       {children}
     </section>
   );
@@ -72,7 +72,7 @@ function Card({ className = '', children }) {
 function SectionHeader({ icon: Icon, title, action }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-4">
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
         <span className="w-9 h-9 rounded-full bg-[#F7FFE0] dark:bg-[#1E2124] flex items-center justify-center shrink-0">
           <Icon size={18} strokeWidth={2} className="text-[#142033] dark:text-[#DFFF83]" />
         </span>
@@ -84,7 +84,7 @@ function SectionHeader({ icon: Icon, title, action }) {
 }
 
 function ViewAll({ to, onClick, children = 'View all' }) {
-  const cls = 'inline-flex items-center gap-1 text-xs font-medium text-[#142033]/80 dark:text-[#94A3B8] hover:text-[#4D6600] dark:hover:text-[#DFFF83] transition-colors shrink-0 cursor-pointer';
+  const cls = 'inline-flex items-center gap-1 text-xs font-semibold text-[#142033]/80 dark:text-[#94A3B8] hover:text-[#4D6600] dark:hover:text-[#DFFF83] transition-colors shrink-0 cursor-pointer';
   if (to) {
     return (
       <Link to={to} className={cls}>
@@ -99,28 +99,27 @@ function ViewAll({ to, onClick, children = 'View all' }) {
   );
 }
 
-function SummaryCard({ icon: Icon, label, value, detail, detailIcon: DetailIcon, tone = 'green', detailTone = 'muted', loading }) {
-  const bg = tone === 'green'
-    ? 'bg-[#F7FFE0] border-[#E3F5A8] dark:bg-[#142312] dark:border-[#274220]'
-    : 'bg-[#F2F7FF] border-[#DCE7F7] dark:bg-[#0F1D30] dark:border-[#1E395F]';
+function SummaryCard({ icon: Icon, label, value, detail, detailIcon: DetailIcon, detailTone = 'muted', loading }) {
   const detailColor = {
     muted: 'text-[#70829B] dark:text-[#94A3B8]',
-    good: 'text-[#4D6600] dark:text-[#DFFF83]',
-    warn: 'text-amber-700 dark:text-[#FCD34D]',
+    good: 'text-emerald-600 dark:text-emerald-400',
+    warn: 'text-amber-600 dark:text-[#FCD34D]',
     bad: 'text-rose-600 dark:text-[#FB7185]',
   }[detailTone];
   return (
-    <div className={`rounded-lg border ${bg} p-4 sm:p-5 min-h-[128px] flex flex-col transition-colors`}>
-      <div className="flex items-center gap-3">
-        <span className="w-10 h-10 rounded-full bg-white/90 dark:bg-[#1E2124] border border-white dark:border-[#2B3238] flex items-center justify-center shrink-0">
-          <Icon size={20} strokeWidth={2} className="text-[#142033] dark:text-[#F5F7F5]" />
-        </span>
-        <span className="text-sm font-medium text-[#142033] dark:text-[#94A3B8] leading-tight">{label}</span>
+    <div className="bg-white dark:bg-[#17191A] rounded-2xl border border-[#E1E8EF] dark:border-[#2B3238] shadow-[0_1px_3px_rgba(20,32,51,0.05)] p-4 sm:p-5 min-h-[132px] flex flex-col justify-between transition-all hover:border-[#DFFF83]/70 dark:hover:border-[#DFFF83]/40">
+      <div>
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-full bg-stone-100/80 dark:bg-[#1E2124] border border-stone-200/60 dark:border-[#2B3238] flex items-center justify-center shrink-0">
+            <Icon size={20} strokeWidth={2} className="text-[#142033] dark:text-[#F5F7F5]" />
+          </span>
+          <span className="text-sm font-medium text-[#70829B] dark:text-[#94A3B8] leading-tight">{label}</span>
+        </div>
+        <div className="mt-3 text-2xl sm:text-[28px] font-semibold text-[#142033] dark:text-[#F5F7F5] font-heading leading-none tabular-nums">
+          {loading ? <Skeleton className="h-7 w-20" /> : value}
+        </div>
       </div>
-      <div className="mt-3 text-2xl sm:text-[28px] font-semibold text-[#142033] dark:text-[#F5F7F5] font-heading leading-none tabular-nums">
-        {loading ? <Skeleton className="h-7 w-20" /> : value}
-      </div>
-      <div className={`mt-2 text-xs flex items-center gap-1.5 ${detailColor}`}>
+      <div className={`mt-3 text-xs flex items-center gap-1.5 ${detailColor}`}>
         {loading ? (
           <Skeleton className="h-3 w-28" />
         ) : (
@@ -159,55 +158,77 @@ function BatchCard({ batch, currentBirds, eggsPerDay, logsLoaded, onOpen }) {
   const MetricIcon = metric.icon;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className={`group text-left rounded-lg border p-4 transition-all cursor-pointer hover:shadow-md ${
-        eggsBatch
-          ? 'bg-[#F7FFE0] border-[#E3F5A8] hover:border-[#D2EC7A] dark:bg-[#142312] dark:border-[#274220] dark:hover:border-[#385E2E]'
-          : 'bg-[#F2F7FF] border-[#DCE7F7] hover:border-[#C2D6F2] dark:bg-[#0F1D30] dark:border-[#1E395F] dark:hover:border-[#2B5285]'
-      }`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className="group bg-stone-50/70 dark:bg-[#1E2124] hover:bg-white dark:hover:bg-[#252A2E] rounded-xl border border-stone-200/80 dark:border-[#2B3238] hover:border-[#DFFF83] dark:hover:border-[#DFFF83] shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-[#DFFF83]"
     >
-      <div className="flex items-center gap-3">
-        <span className="w-11 h-11 rounded-full bg-white dark:bg-[#1E2124] flex items-center justify-center shrink-0">
-          <TypeIcon size={22} strokeWidth={2} className="text-[#142033] dark:text-[#F5F7F5]" />
-        </span>
-        <h3 className="flex-1 min-w-0 text-base font-semibold text-[#142033] dark:text-[#F5F7F5] truncate group-hover:text-[#4D6600] dark:group-hover:text-[#DFFF83] transition-colors">
-          {batch.name}
-        </h3>
-        <span
-          className={`px-2.5 py-0.5 rounded-md text-[11px] font-medium shrink-0 ${
-            eggsBatch
-              ? 'bg-[#EFFFC4] text-[#4D6600] dark:bg-[#20361C] dark:text-[#DFFF83]'
-              : 'bg-[#E2ECFB] text-[#2F6FD6] dark:bg-[#152B47] dark:text-[#60A5FA]'
-          }`}
-        >
-          {birdTypeLabel(batch.type)}
-        </span>
+      {/* Individual Bird Image with sleek aspect ratio */}
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-stone-200/60 dark:bg-[#17191A]">
+        <img
+          src={batchImage(batch)}
+          alt={batch.name}
+          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+        />
+        <div className="absolute top-2.5 right-2.5">
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold backdrop-blur-md shadow-xs border ${
+              eggsBatch
+                ? 'bg-[#EFFFC4]/95 text-[#4D6600] border-[#E3F5A8] dark:bg-[#20361C]/95 dark:text-[#DFFF83] dark:border-[#274220]'
+                : 'bg-[#E2ECFB]/95 text-[#2F6FD6] border-[#DCE7F7] dark:bg-[#152B47]/95 dark:text-[#60A5FA] dark:border-[#1E395F]'
+            }`}
+          >
+            {birdTypeLabel(batch.type)}
+          </span>
+        </div>
       </div>
 
-      <div className="mt-4 flex items-stretch">
-        <div className="flex-1 flex items-start gap-2.5 pr-3 border-r border-[#142033]/10 dark:border-white/10 min-w-0">
-          <BirdIcon size={17} className="mt-0.5 shrink-0" />
-          <div className="min-w-0">
-            <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8]">Birds</div>
-            <div className="text-base font-semibold text-[#142033] dark:text-[#F5F7F5] tabular-nums">
-              {logsLoaded ? currentBirds.toLocaleString() : <Skeleton className="h-4 w-12 mt-1" />}
+      {/* Card Details */}
+      <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between gap-1.5">
+            <h3 className="text-sm sm:text-base font-bold text-[#142033] dark:text-[#F5F7F5] truncate group-hover:text-[#4D6600] dark:group-hover:text-[#DFFF83] transition-colors">
+              {batch.name}
+            </h3>
+            <ChevronRight size={15} className="text-[#142033]/50 dark:text-[#94A3B8] shrink-0 group-hover:translate-x-1 transition-transform" />
+          </div>
+
+          <div className="text-xs text-[#70829B] dark:text-[#94A3B8] mt-0.5">
+            Age: <span className="font-semibold text-[#142033] dark:text-[#F5F7F5]">{batchAge(batch)}</span>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="mt-3 pt-3 border-t border-stone-200/70 dark:border-[#2B3238] grid grid-cols-2 gap-2 items-start">
+          <div className="flex items-start gap-1.5 min-w-0">
+            <BirdIcon size={14} className="mt-0.5 shrink-0 text-[#70829B] dark:text-[#94A3B8]" />
+            <div className="min-w-0">
+              <div className="text-[10px] text-[#70829B] dark:text-[#94A3B8]">Birds</div>
+              <div className="text-xs sm:text-sm font-bold text-[#142033] dark:text-[#F5F7F5] tabular-nums truncate">
+                {logsLoaded ? currentBirds.toLocaleString() : <Skeleton className="h-4 w-12 mt-1" />}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-1.5 min-w-0">
+            <MetricIcon size={14} strokeWidth={2} className="mt-0.5 shrink-0 text-[#142033] dark:text-[#F5F7F5]" />
+            <div className="min-w-0">
+              <div className="text-[10px] text-[#70829B] dark:text-[#94A3B8] truncate">{metric.label}</div>
+              <div className="text-xs sm:text-sm font-bold text-[#142033] dark:text-[#F5F7F5] truncate">
+                {metric.value ?? <Skeleton className="h-4 w-14 mt-1" />}
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex-1 flex items-start gap-2.5 pl-4 min-w-0">
-          <MetricIcon size={17} strokeWidth={2} className="mt-0.5 shrink-0 text-[#142033] dark:text-[#F5F7F5]" />
-          <div className="min-w-0">
-            <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8]">{metric.label}</div>
-            <div className="text-base font-semibold text-[#142033] dark:text-[#F5F7F5] truncate">
-              {metric.value ?? <Skeleton className="h-4 w-14 mt-1" />}
-            </div>
-          </div>
-        </div>
-        <ChevronRight size={16} className="self-end text-[#142033]/60 dark:text-[#94A3B8] shrink-0 group-hover:translate-x-0.5 transition-transform" />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -231,37 +252,7 @@ const ACTIVITY_STYLE = {
   batch: { icon: PlusCircle, tint: 'bg-[#EAF1FC] dark:bg-[#172538]' },
 };
 
-function QuickAction({ icon: Icon, title, hint, tone, onClick, to, disabled, filledIcon }) {
-  const tones = {
-    green: 'bg-[#F7FFE0] border-[#E3F5A8] hover:border-[#D2EC7A] dark:bg-[#142312] dark:border-[#274220] dark:hover:border-[#385E2E]',
-    blue: 'bg-[#F2F7FF] border-[#DCE7F7] hover:border-[#C2D6F2] dark:bg-[#0F1D30] dark:border-[#1E395F] dark:hover:border-[#2B5285]',
-    red: 'bg-[#FFF4F4] border-[#F8DCDC] hover:border-[#F0C2C2] dark:bg-[#260D12] dark:border-[#4C1A24] dark:hover:border-[#6B2433]',
-  };
-  const cls = `flex items-start gap-3 rounded-lg border p-3.5 sm:p-4 text-left transition-colors min-h-[84px] ${tones[tone]} ${
-    disabled ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer'
-  }`;
-  const body = (
-    <>
-      <span
-        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-          filledIcon ? 'bg-[#DFFF83] text-[#17191A]' : 'bg-white dark:bg-[#1E2124] text-[#142033] dark:text-[#F5F7F5]'
-        }`}
-      >
-        <Icon size={18} strokeWidth={filledIcon ? 2.5 : 2} />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-[#142033] dark:text-[#F5F7F5] leading-tight">{title}</span>
-        <span className="block text-xs text-[#70829B] dark:text-[#94A3B8] mt-1 leading-snug">{hint}</span>
-      </span>
-    </>
-  );
-  if (to && !disabled) return <Link to={to} className={cls}>{body}</Link>;
-  return (
-    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
-      {body}
-    </button>
-  );
-}
+
 
 function EmptyNote({ children }) {
   return <div className="flex-1 flex items-center justify-center text-center text-xs text-[#70829B] dark:text-[#94A3B8] py-8 px-4">{children}</div>;
@@ -273,6 +264,24 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { farm } = useAuth();
   const { batches, loading: batchesLoading, error: batchesError } = useBatches();
+
+  const [quickActionOpen, setQuickActionOpen] = useState(false);
+  const quickActionRef = useRef(null);
+
+  // Close Quick Actions dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (quickActionRef.current && !quickActionRef.current.contains(event.target)) {
+        setQuickActionOpen(false);
+      }
+    }
+    if (quickActionOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [quickActionOpen]);
 
   // Per-batch logs plus the farm's feed purchases, loaded in groups of two
   // batches (farmData.js: firing every request at once trips Lambda
@@ -491,12 +500,128 @@ export function DashboardPage() {
   // ---- render ----------------------------------------------------------------------
   return (
     <div className="space-y-6 pb-12 text-[#142033] dark:text-[#F5F7F5]">
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl sm:text-[26px] font-semibold font-heading leading-tight text-[#142033] dark:text-[#F5F7F5]">
-          {firstName ? `Hi, ${firstName}` : 'Hi there'}
-        </h1>
-        <p className="text-sm text-[#70829B] dark:text-[#94A3B8] mt-1">Here's what's happening on your farm today.</p>
+      {/* Greeting & Quick Action Dropdown: kept side-by-side with Quick Actions on the right across all screen sizes */}
+      <div className="flex items-center justify-between gap-3 sm:gap-4">
+        {/* Greeting text on the left */}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl lg:text-[26px] font-semibold font-heading leading-tight text-[#142033] dark:text-[#F5F7F5] truncate">
+            {firstName ? `Hi, ${firstName}` : 'Hi there'}
+          </h1>
+          <p className="text-xs sm:text-sm text-[#70829B] dark:text-[#94A3B8] mt-0.5 truncate">
+            Here's what's happening on your farm today.
+          </p>
+        </div>
+
+        {/* Quick Action Dropdown always on the right */}
+        <div className="relative shrink-0" ref={quickActionRef}>
+          <button
+            type="button"
+            onClick={() => setQuickActionOpen((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-[#DFFF83] text-[#17191A] font-semibold text-xs sm:text-sm hover:bg-[#cbf260] active:scale-[0.98] transition-all shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#DFFF83]/80 shrink-0"
+            aria-expanded={quickActionOpen}
+            aria-haspopup="true"
+          >
+            <Zap size={15} strokeWidth={2.5} className="fill-[#17191A] shrink-0" />
+            <span className="whitespace-nowrap">Quick Actions</span>
+            <ChevronDown
+              size={14}
+              className={`transition-transform duration-200 shrink-0 ${quickActionOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {quickActionOpen && (
+            <div
+              className="absolute right-0 top-full mt-2 w-60 bg-white dark:bg-[#1E2124] border border-[#E1E8EF] dark:border-[#2B3238] rounded-xl shadow-xl p-1.5 z-30 animate-slide-up text-xs"
+              role="menu"
+            >
+              <Link
+                to="/batches/new"
+                onClick={() => setQuickActionOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#142033] dark:text-[#F5F7F5] hover:bg-[#F7FFE0] dark:hover:bg-[#142312] hover:text-[#4D6600] dark:hover:text-[#DFFF83] transition-colors font-medium"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#DFFF83] text-[#17191A] flex items-center justify-center shrink-0">
+                  <Plus size={15} strokeWidth={2.5} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm leading-tight">Create Batch</div>
+                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">Start a new flock</div>
+                </div>
+              </Link>
+
+              <button
+                type="button"
+                disabled={noActive}
+                onClick={() => {
+                  setQuickActionOpen(false);
+                  setModal('feed');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors font-medium ${
+                  noActive
+                    ? 'opacity-40 cursor-not-allowed text-[#70829B]'
+                    : 'text-[#142033] dark:text-[#F5F7F5] hover:bg-stone-50 dark:hover:bg-[#262A2E] cursor-pointer'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full bg-stone-100 dark:bg-[#2B3238] flex items-center justify-center shrink-0">
+                  <FeedIcon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm leading-tight">Log Feed</div>
+                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                    {noActive ? 'Needs an active batch' : 'Record feed usage'}
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                disabled={noActive}
+                onClick={() => {
+                  setQuickActionOpen(false);
+                  setModal('vaccine');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors font-medium ${
+                  noActive
+                    ? 'opacity-40 cursor-not-allowed text-[#70829B]'
+                    : 'text-[#142033] dark:text-[#F5F7F5] hover:bg-stone-50 dark:hover:bg-[#262A2E] cursor-pointer'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full bg-stone-100 dark:bg-[#2B3238] flex items-center justify-center shrink-0">
+                  <VaccineIcon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm leading-tight">Record Vaccination</div>
+                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                    {noActive ? 'Needs an active batch' : 'Update vaccination records'}
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                disabled={noActive}
+                onClick={() => {
+                  setQuickActionOpen(false);
+                  logBirdLoss();
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors font-medium ${
+                  noActive
+                    ? 'opacity-40 cursor-not-allowed text-[#70829B]'
+                    : 'text-[#142033] dark:text-[#F5F7F5] hover:bg-rose-50 dark:hover:bg-[#260D12] hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full bg-rose-50 dark:bg-[#260D12] text-rose-600 flex items-center justify-center shrink-0">
+                  <BirdIcon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm leading-tight">Log Bird Loss</div>
+                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                    {noActive ? 'Needs an active batch' : 'Record bird mortality'}
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {loadState === 'error' && (
@@ -508,98 +633,93 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* 1. Your Batches, with Quick Actions beside it (stacked below xl) */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)] gap-5 items-stretch">
-        {/* Your Batches */}
-        <Card className="p-4 sm:p-5">
-          <SectionHeader icon={BatchIcon} title="Your Batches" action={<ViewAll to="/batches" />} />
-          <div className="h-32 sm:h-40 rounded-md overflow-hidden bg-stone-100">
-            <img src={BATCH_BANNER} alt="Hens on a poultry farm" className="w-full h-full object-cover object-[center_45%]" />
+      {/* 1. Your Batches Dedicated Rectangle Panel */}
+      <section className="bg-[#f4f5f7] dark:bg-[#17191A] rounded-2xl border border-[#E1E8EF] dark:border-[#2B3238] shadow-[0_1px_3px_rgba(20,32,51,0.05)] p-4 sm:p-5 lg:p-6 transition-colors">
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-full bg-[#F7FFE0] dark:bg-[#1E2124] flex items-center justify-center shrink-0">
+              <BatchIcon size={18} strokeWidth={2} className="text-[#142033] dark:text-[#DFFF83]" />
+            </span>
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-[#142033] dark:text-[#F5F7F5] font-heading truncate">
+                Your Batches
+              </h2>
+              {activeBatches.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F7FFE0] text-[#4D6600] dark:bg-[#20361C] dark:text-[#DFFF83] border border-[#E3F5A8] dark:border-[#274220]">
+                  {activeBatches.length} {activeBatches.length === 1 ? 'Active' : 'Active'}
+                </span>
+              )}
+            </div>
           </div>
+          <ViewAll to="/batches">View all batches</ViewAll>
+        </div>
 
-          {batchesLoading ? (
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              <Skeleton className="h-32 rounded-lg" />
-              <Skeleton className="h-32 rounded-lg" />
-            </div>
-          ) : noActive && batchesError ? (
-            // The list couldn't load (offline, nothing saved yet): not the same as having none.
-            <div className="mt-4 rounded-lg border border-dashed border-[#E1E8EF] p-6 text-center">
-              <p className="text-sm font-semibold">Your batches will show once you're back online</p>
-              <p className="text-xs text-[#70829B] mt-1">They haven't been saved on this device yet.</p>
-            </div>
-          ) : noActive ? (
-            <div className="mt-4 rounded-lg border border-dashed border-[#E1E8EF] p-6 text-center">
-              <p className="text-sm font-semibold">No active batches</p>
-              <p className="text-xs text-[#70829B] mt-1">Start a batch to begin tracking birds, feed and vaccinations.</p>
-              <Link
-                to="/batches/new"
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#DFFF83] text-[#17191A] text-sm font-semibold hover:bg-[#C5E95A] transition-colors"
-              >
-                <Plus size={16} /> Create New Batch
-              </Link>
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4 mt-4">
-              {visibleBatches.map((b) => (
-                <BatchCard
-                  key={b.batchId}
-                  batch={b}
-                  currentBirds={currentBirdsOf(b)}
-                  eggsPerDay={eggsPerDayOf(b)}
-                  logsLoaded={!loading}
-                  onOpen={() => navigate(`/batches/${b.batchId}`)}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="p-4 sm:p-5 w-full h-full flex flex-col">
-          <SectionHeader icon={Zap} title="Quick Actions" />
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 auto-rows-fr gap-3 flex-1">
-            <QuickAction icon={Plus} filledIcon title="Create Batch" hint="Start a new batch" tone="green" to="/batches/new" />
-            <QuickAction
-              icon={FeedIcon}
-              title="Log Feed"
-              hint={noActive ? 'Needs an active batch' : 'Record feed usage'}
-              tone="blue"
-              disabled={noActive}
-              onClick={() => setModal('feed')}
-            />
-            <QuickAction
-              icon={VaccineIcon}
-              title="Record Vaccination"
-              hint={noActive ? 'Needs an active batch' : 'Update vaccination records'}
-              tone="blue"
-              disabled={noActive}
-              onClick={() => setModal('vaccine')}
-            />
-            <QuickAction
-              icon={BirdIcon}
-              title="Log Bird Loss"
-              hint={noActive ? 'Needs an active batch' : 'Record mortality/loss'}
-              tone="red"
-              disabled={noActive}
-              onClick={logBirdLoss}
-            />
+        {batchesLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-stone-50/70 dark:bg-[#1E2124] rounded-xl border border-stone-200/80 dark:border-[#2B3238] overflow-hidden flex flex-col">
+                <Skeleton className="aspect-[16/10] w-full" />
+                <div className="p-3.5 sm:p-4 space-y-2.5">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/3" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <Skeleton className="h-8 rounded-lg" />
+                    <Skeleton className="h-8 rounded-lg" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </Card>
-      </div>
+        ) : noActive && batchesError ? (
+          // The list couldn't load (offline, nothing saved yet): not the same as having none.
+          <div className="p-8 text-center border-2 border-dashed border-[#CCD7E2] dark:border-[#2B3238] rounded-xl flex flex-col items-center justify-center">
+            <p className="text-sm font-semibold text-[#142033] dark:text-[#F5F7F5]">Your batches will show once you're back online</p>
+            <p className="text-xs text-[#70829B] dark:text-[#94A3B8] mt-1">They haven't been saved on this device yet.</p>
+          </div>
+        ) : noActive ? (
+          <div className="p-8 text-center border-2 border-dashed border-[#CCD7E2] dark:border-[#2B3238] rounded-xl flex flex-col items-center justify-center">
+            <p className="text-sm font-semibold text-[#142033] dark:text-[#F5F7F5]">No active batches</p>
+            <p className="text-xs text-[#70829B] dark:text-[#94A3B8] mt-1">Start a batch to begin tracking birds, feed and vaccinations.</p>
+            <Link
+              to="/batches/new"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#DFFF83] text-[#17191A] text-sm font-semibold hover:bg-[#C5E95A] transition-colors"
+            >
+              <Plus size={16} /> Create New Batch
+            </Link>
+          </div>
+        ) : (
+          <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            {visibleBatches.map((b) => (
+              <BatchCard
+                key={b.batchId}
+                batch={b}
+                currentBirds={currentBirdsOf(b)}
+                eggsPerDay={eggsPerDayOf(b)}
+                logsLoaded={!loading}
+                onOpen={() => navigate(`/batches/${b.batchId}`)}
+              />
+            ))}
+            {/* The 4th card: Create New Batch card with + sign */}
+            <Link
+              to="/batches/new"
+              className="group bg-stone-50/50 dark:bg-[#1E2124]/40 hover:bg-stone-50 dark:hover:bg-[#1E2124] rounded-xl border-2 border-dashed border-stone-200 dark:border-[#2B3238] hover:border-[#DFFF83] dark:hover:border-[#DFFF83] shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col items-center justify-center text-center p-5 cursor-pointer min-h-[200px]"
+            >
+              <div className="w-12 h-12 rounded-full bg-[#F7FFE0] dark:bg-[#252A2E] text-[#142033] dark:text-[#DFFF83] group-hover:bg-[#DFFF83] group-hover:text-[#17191A] group-hover:scale-110 flex items-center justify-center transition-all shadow-2xs mb-2.5">
+                <Plus size={22} strokeWidth={2.5} />
+              </div>
+              <span className="text-sm sm:text-base font-bold text-[#142033] dark:text-[#F5F7F5] group-hover:text-[#4D6600] dark:group-hover:text-[#DFFF83] transition-colors">
+                New Batch
+              </span>
+              <span className="text-[11px] text-[#70829B] dark:text-[#94A3B8] mt-0.5 font-medium">
+                Start a new flock
+              </span>
+            </Link>
+          </div>
+        )}
+      </section>
 
-      {/* 2. Summary cards */}
+      {/* 2. Key Metrics Bento Grid */}
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-4">
-        <SummaryCard
-          icon={BatchIcon}
-          label="Active Batches"
-          value={activeBatches.length.toLocaleString()}
-          detail={startedThisWeek > 0 ? `+${startedThisWeek} started this week` : 'No new batches this week'}
-          detailIcon={startedThisWeek > 0 ? TrendingUp : null}
-          detailTone={startedThisWeek > 0 ? 'good' : 'muted'}
-          loading={batchesLoading}
-          tone="green"
-        />
         <SummaryCard
           icon={BirdIcon}
           label="Total Birds"
@@ -608,7 +728,15 @@ export function DashboardPage() {
           detailIcon={lostThisWeek > 0 ? TrendingDown : null}
           detailTone={lostThisWeek > 0 ? 'bad' : 'muted'}
           loading={loading}
-          tone="blue"
+        />
+        <SummaryCard
+          icon={BatchIcon}
+          label="Active Batches"
+          value={activeBatches.length.toLocaleString()}
+          detail={startedThisWeek > 0 ? `+${startedThisWeek} started this week` : 'No new batches this week'}
+          detailIcon={startedThisWeek > 0 ? TrendingUp : null}
+          detailTone={startedThisWeek > 0 ? 'good' : 'muted'}
+          loading={batchesLoading}
         />
         <SummaryCard
           icon={FeedIcon}
@@ -625,7 +753,6 @@ export function DashboardPage() {
           }
           detailTone={feed?.low > 0 ? 'warn' : 'muted'}
           loading={loading}
-          tone="green"
         />
         <SummaryCard
           icon={VaccineIcon}
@@ -641,13 +768,12 @@ export function DashboardPage() {
           detailIcon={CalendarIcon}
           detailTone={vaccines.overdue > 0 && vaccines.upcoming.length === 0 ? 'bad' : 'muted'}
           loading={loading}
-          tone="blue"
         />
       </div>
 
-      {/* 3. Production Performance (wider: what farmers act on) and Recent Activity */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-5">
-          <Card className="p-4 sm:p-5 flex flex-col">
+      {/* 3. Deep Operations Bento Grid (Production Performance & Recent Activity) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <Card className="p-4 sm:p-5 flex flex-col lg:col-span-7 xl:col-span-8">
             <SectionHeader
               icon={ChartLine}
               title="Production Performance"
@@ -720,7 +846,7 @@ export function DashboardPage() {
             )}
           </Card>
 
-          <Card className="p-4 sm:p-5 flex flex-col">
+          <Card className="p-4 sm:p-5 flex flex-col lg:col-span-5 xl:col-span-4">
             <SectionHeader
               icon={HistoryIcon}
               title="Recent Activity"
@@ -734,7 +860,7 @@ export function DashboardPage() {
             />
             {loading ? (
               <div className="space-y-4">
-                {[0, 1, 2].map((i) => (
+                {[0, 1, 2, 3].map((i) => (
                   <div key={i} className="flex items-center gap-3">
                     <Skeleton className="w-11 h-11 rounded-full" />
                     <div className="flex-1 space-y-2">
