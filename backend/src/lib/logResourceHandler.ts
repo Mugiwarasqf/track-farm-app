@@ -1,9 +1,10 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
 import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb } from "./dynamo";
-import { badRequest, created, ok } from "./http";
+import { badRequest, created, farmIdFromEvent, notFound, ok } from "./http";
 import { entryId } from "./ids";
 import { checkRecordDateOf } from "./dates";
+import { batchBelongsToFarm } from "./batchAuth";
 
 /**
  * Mortality, feed, eggs, and vaccination-history all share the same shape:
@@ -19,6 +20,9 @@ export function makeLogResourceHandler<TExtra extends object>(opts: {
     const batchId = event.pathParameters?.id;
     if (!batchId) return badRequest("batch id is required in the path");
     const method = event.requestContext.http.method;
+
+    const farmId = farmIdFromEvent(event);
+    if (!(await batchBelongsToFarm(farmId, batchId))) return notFound("batch not found");
 
     if (method === "GET") {
       const result = await ddb.send(

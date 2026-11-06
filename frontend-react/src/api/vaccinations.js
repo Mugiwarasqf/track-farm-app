@@ -1,5 +1,5 @@
 import { createLog, getLogs } from './logs';
-import { createSchedule, updateSchedule } from './schedule';
+import { updateSchedule } from './schedule';
 
 /** Vaccinations recorded as given (the backward-looking history). */
 export function getVaccinationRecords(batchId) {
@@ -10,14 +10,21 @@ export function getVaccinationRecords(batchId) {
  * Saves what the vaccination form produced.
  *
  * mode 'schedule' → a future due date on the vaccination schedule, which the
- * daily reminder job picks up.
+ * daily reminder job picks up. Queueable offline like the logs below — the
+ * on-device queue doesn't know a "schedule" shape, so a queued result here
+ * is reshaped to look like the server's own response (scheduleId, status)
+ * rather than leaking the generic log-entry fields into schedule-reading UI.
  * mode 'record' → a vaccination that was actually given, in the history.
  * When it fulfils a scheduled one (scheduleId), that schedule is also marked
  * done so it stops showing as due.
  */
 export async function saveVaccination({ mode, batchId, scheduleId, ...fields }) {
   if (mode === 'schedule') {
-    return { mode, item: await createSchedule(batchId, fields) };
+    const result = await createLog(batchId, 'vaccination-schedule', fields);
+    const item = result.queued
+      ? { ...fields, batchId, scheduleId: result.entryId, status: 'upcoming', createdAt: result.createdAt, queued: true, pending: true }
+      : result;
+    return { mode, item };
   }
 
   const item = await createLog(batchId, 'vaccinations', { ...fields, ...(scheduleId ? { scheduleId } : {}) });
