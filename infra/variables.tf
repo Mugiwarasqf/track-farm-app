@@ -16,6 +16,22 @@ variable "project_name" {
   default     = "poultry-farm-app"
 }
 
+# Both required, no default -- forces every environment's tfvars to say
+# explicitly which account it targets, rather than inheriting whatever
+# AWS_PROFILE happens to be set in the shell. allowed_account_ids below
+# makes Terraform hard-error before touching anything if the resolved
+# credentials don't match -- the actual guardrail against applying one
+# environment's config into the other's AWS account.
+variable "aws_profile" {
+  description = "Named AWS CLI profile this environment's provider authenticates as."
+  type        = string
+}
+
+variable "aws_account_id" {
+  description = "AWS account ID this environment must deploy into -- see providers.tf's allowed_account_ids."
+  type        = string
+}
+
 # Placeholder trial length — docs/10-build-plan.md §7 is explicit that the
 # real number comes from a second payment survey once the trial phase has
 # traction, not from a guess made while scaffolding infra. Kept as a

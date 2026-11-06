@@ -1,10 +1,11 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
 import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, tables } from "../../lib/dynamo";
-import { badRequest, created, ok } from "../../lib/http";
+import { badRequest, created, farmIdFromEvent, notFound, ok } from "../../lib/http";
 import { newId } from "../../lib/ids";
 import type { VaccinationSchedule, VaccinationScheduleStatus } from "../../lib/types";
 import { pickOptional } from "../../lib/optionalFields";
+import { batchBelongsToFarm } from "../../lib/batchAuth";
 
 // The forward-looking half of vaccination reminders (docs/04-v1-feature-scope.md
 // §4) — due dates the scheduled Lambda in handlers/scheduled/vaccinationReminders.ts
@@ -15,6 +16,9 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   const batchId = event.pathParameters?.id;
   if (!batchId) return badRequest("batch id is required in the path");
   const method = event.requestContext.http.method;
+
+  const farmId = farmIdFromEvent(event);
+  if (!(await batchBelongsToFarm(farmId, batchId))) return notFound("batch not found");
 
   if (method === "GET") {
     const result = await ddb.send(

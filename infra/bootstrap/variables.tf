@@ -4,10 +4,24 @@ variable "aws_region" {
   default     = "eu-west-1"
 }
 
+# Bootstrap only ever targets prod (CI/CD never deploys to beta) -- pinned
+# the same way as infra/'s own providers.tf, see that file's comment.
+variable "aws_profile" {
+  description = "Named AWS CLI profile this provider authenticates as."
+  type        = string
+  default     = "poultry-prod"
+}
+
+variable "aws_account_id" {
+  description = "AWS account ID this must deploy into -- see providers.tf's allowed_account_ids."
+  type        = string
+  default     = "685108783257"
+}
+
 variable "github_repo" {
   description = "GitHub repo (owner/name) allowed to assume the CI/CD role."
   type        = string
-  default     = "Mugiwarasqf/poultry-farm-app"
+  default     = "Mugiwarasqf/track-farm-app"
 }
 
 # AWS no longer actually validates this against GitHub's cert for the

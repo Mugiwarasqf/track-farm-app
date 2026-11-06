@@ -6,6 +6,7 @@ import { getSickBayCases, createSickBayCase, closeSickBayCase } from '../../api/
 import { formatDate } from '../../lib/batch';
 import { toIso } from '../../lib/supplements';
 import { SkeletonRows } from '../ui/Skeleton';
+import { Spinner } from '../ui/Spinner';
 
 // Signs a farmer can spot without a vet. Tapping one is quicker than typing,
 // and the same words make cases easy to compare later.
@@ -20,18 +21,18 @@ const SYMPTOMS = [
   'Ruffled feathers',
 ];
 
-const FIELD = 'w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#0D5C3A]/20 focus:border-[#0D5C3A] transition-all placeholder:text-stone-400';
-const LABEL = 'text-xs font-bold text-stone-800 block mb-1.5';
+const FIELD = 'w-full px-3.5 py-2.5 bg-white dark:bg-[#17191A] border border-stone-300 dark:border-[#2B3238] rounded-xl text-sm text-stone-900 dark:text-[#F5F7F5] focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#64748B]';
+const LABEL = 'text-xs font-bold text-stone-800 dark:text-[#F5F7F5] block mb-1.5';
 
 function Tile({ icon: Icon, label, value, hint }) {
   return (
-    <div className="rounded-xl border border-stone-200 p-4">
-      <div className="flex items-center gap-2 text-stone-500">
-        <Icon size={15} strokeWidth={2.5} className="text-stone-500 shrink-0" />
+    <div className="rounded-xl border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#1E2124] p-4">
+      <div className="flex items-center gap-2 text-stone-500 dark:text-[#94A3B8]">
+        <Icon size={15} strokeWidth={2.5} className="text-stone-500 dark:text-[#64748B] shrink-0" />
         <span className="text-xs font-medium truncate">{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold text-stone-950 font-heading tabular-nums">{value}</div>
-      {hint && <div className="text-[11px] text-stone-400 mt-0.5">{hint}</div>}
+      <div className="mt-2 text-2xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading tabular-nums">{value}</div>
+      {hint && <div className="text-[11px] text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -40,24 +41,24 @@ function Sheet({ title, subtitle, onClose, children, footer }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl z-10 animate-fade-in flex flex-col max-h-[92vh]" role="dialog" aria-label={title}>
-        <div className="flex items-center justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-stone-100 shrink-0">
+      <div className="relative bg-white dark:bg-[#1E2124] w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl z-10 animate-fade-in flex flex-col max-h-[92vh] border border-stone-200 dark:border-[#2B3238]" role="dialog" aria-label={title}>
+        <div className="flex items-center justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-stone-100 dark:border-[#2B3238] shrink-0">
           <div className="min-w-0">
-            <h2 className="text-lg font-bold text-stone-950 font-heading">{title}</h2>
-            {subtitle && <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>}
+            <h2 className="text-lg font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{title}</h2>
+            {subtitle && <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-0.5">{subtitle}</p>}
           </div>
-          <button type="button" onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-100 cursor-pointer shrink-0" aria-label="Close">
+          <button type="button" onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 dark:text-[#94A3B8] hover:text-stone-900 dark:hover:text-[#F5F7F5] hover:bg-stone-100 dark:hover:bg-[#2B3238] cursor-pointer shrink-0" aria-label="Close">
             <X size={20} />
           </button>
         </div>
         <div className="overflow-y-auto px-5 sm:px-6 py-5 space-y-4">{children}</div>
-        <div className="px-5 sm:px-6 pb-5 pt-3 border-t border-stone-100 shrink-0">{footer}</div>
+        <div className="px-5 sm:px-6 pb-5 pt-3 border-t border-stone-100 dark:border-[#2B3238] shrink-0">{footer}</div>
       </div>
     </div>
   );
 }
 
-const primaryBtn = 'w-full py-3.5 rounded-2xl font-bold text-sm inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#0D5C3A] hover:bg-[#094229] text-white shadow-xs';
+const primaryBtn = 'w-full py-3.5 rounded-2xl font-bold text-sm inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#DFFF83] hover:bg-[#C5E95A] text-[#17191A] shadow-xs';
 
 /**
  * Sick Bay: birds taken out of the flock because they're sick, followed
@@ -208,17 +209,17 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm p-5">
+      <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-base font-bold text-stone-950 font-heading">Sick Bay</h2>
-            <p className="text-xs text-stone-500 mt-0.5">Sick birds kept apart from the flock, and how they did.</p>
+            <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Sick Bay</h2>
+            <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-0.5">Sick birds kept apart from the flock, and how they did.</p>
           </div>
           {!readOnly && (
             <button
               type="button"
               onClick={openAdd}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer shrink-0"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer shrink-0"
             >
               <Plus size={14} strokeWidth={2.5} /> Isolate Birds
             </button>
@@ -231,37 +232,37 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-5">
-        <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Open Cases</h2>
+      <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+        <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Open Cases</h2>
         {loading ? (
           <SkeletonRows rows={2} />
         ) : error ? (
-          <p className="py-4 text-sm text-stone-500">{error}</p>
+          <p className="py-4 text-sm text-stone-500 dark:text-[#94A3B8]">{error}</p>
         ) : openCases.length === 0 ? (
-          <p className="py-4 text-sm text-stone-500">No birds in the sick bay.</p>
+          <p className="py-4 text-sm text-stone-500 dark:text-[#94A3B8]">No birds in the sick bay.</p>
         ) : (
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-stone-100 dark:divide-[#2B3238]">
             {openCases.map((c) => (
               <li key={c.caseId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5">
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                    <Stethoscope size={16} strokeWidth={2.5} className="text-stone-700" />
+                  <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center shrink-0">
+                    <Stethoscope size={16} strokeWidth={2.5} className="text-stone-700 dark:text-amber-400" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-stone-900">
+                    <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5]">
                       {c.birdCount} bird{c.birdCount === 1 ? '' : 's'} · since {formatDate(c.dateIsolated)}
                     </div>
-                    <div className="text-xs text-stone-500 break-words">
+                    <div className="text-xs text-stone-500 dark:text-[#94A3B8] break-words">
                       {[c.suspectedCause, (c.symptoms || []).join(', ')].filter(Boolean).join(' — ') || 'No symptoms recorded'}
                     </div>
-                    {c.treatment && <div className="text-xs text-stone-500">Treatment: {c.treatment}</div>}
+                    {c.treatment && <div className="text-xs text-stone-500 dark:text-[#94A3B8]">Treatment: {c.treatment}</div>}
                   </div>
                 </div>
                 {!readOnly && (
                   <button
                     type="button"
                     onClick={() => openClose(c)}
-                    className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#0D5C3A]/30 text-[#0D5C3A] hover:bg-[#EAF5EF] transition-colors cursor-pointer shrink-0"
+                    className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#D2EC7A] dark:border-[#B7DA3E]/40 text-[#4D6600] dark:text-[#DFFF83] hover:bg-[#F7FFE0] dark:hover:bg-[#252A2E] transition-colors cursor-pointer shrink-0"
                   >
                     Close case
                   </button>
@@ -273,26 +274,26 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
       </div>
 
       {closedCases.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-5">
-          <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Past Cases</h2>
-          <ul className="divide-y divide-stone-100">
+        <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+          <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Past Cases</h2>
+          <ul className="divide-y divide-stone-100 dark:divide-[#2B3238]">
             {closedCases.map((c) => (
               <li key={c.caseId} className="flex items-start justify-between gap-3 py-3.5">
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={16} strokeWidth={2.5} className="text-stone-600" />
+                  <div className="w-9 h-9 rounded-lg bg-stone-100 dark:bg-[#252A2E] flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={16} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-stone-900">
+                    <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5]">
                       {c.birdCount} bird{c.birdCount === 1 ? '' : 's'}: {c.recoveredCount || 0} recovered, {c.diedCount || 0} died
                     </div>
-                    <div className="text-xs text-stone-500 break-words">
+                    <div className="text-xs text-stone-500 dark:text-[#94A3B8] break-words">
                       {[c.suspectedCause, (c.symptoms || []).join(', ')].filter(Boolean).join(' — ') || 'No symptoms recorded'}
                       {c.outcomeNotes ? ` · ${c.outcomeNotes}` : ''}
                     </div>
                   </div>
                 </div>
-                <span className="text-xs text-stone-500 shrink-0 text-right">
+                <span className="text-xs text-stone-500 dark:text-[#94A3B8] shrink-0 text-right">
                   {formatDate(c.dateIsolated)}
                   {c.closedAt ? <><br />to {formatDate(c.closedAt)}</> : null}
                 </span>
@@ -309,7 +310,7 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
           onClose={() => setAdding(false)}
           footer={
             <button type="button" onClick={handleAdd} disabled={!canAdd} className={primaryBtn}>
-              <Check size={16} /> {saving ? 'Saving…' : 'Move to Sick Bay'}
+              {saving ? <Spinner /> : <Check size={16} />} {saving ? 'Saving…' : 'Move to Sick Bay'}
             </button>
           }
         >
@@ -336,7 +337,7 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
                   onClick={() => toggleSymptom(s)}
                   aria-pressed={symptoms.includes(s)}
                   className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                    symptoms.includes(s) ? 'bg-[#0D5C3A] text-white border-[#0D5C3A]' : 'bg-white text-stone-600 border-stone-200 hover:border-[#0D5C3A]/40'
+                    symptoms.includes(s) ? 'bg-[#DFFF83] text-[#17191A] border-[#B7DA3E]' : 'bg-white dark:bg-[#252A2E] text-stone-600 dark:text-[#94A3B8] border-stone-200 dark:border-[#2B3238] hover:border-[#D2EC7A]'
                   }`}
                 >
                   {s}
@@ -366,7 +367,7 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
           onClose={() => setClosing(null)}
           footer={
             <button type="button" onClick={handleClose} disabled={!closeValid || saving} className={primaryBtn}>
-              <Check size={16} /> {saving ? 'Saving…' : 'Close Case'}
+              {saving ? <Spinner /> : <Check size={16} />} {saving ? 'Saving…' : 'Close Case'}
             </button>
           }
         >
@@ -383,10 +384,10 @@ export function SickBayTab({ batch, birdsAlive, readOnly = false, onMortalityLog
           {recoveredNum + diedNum > closing.birdCount ? (
             <p className="text-xs text-rose-600">That's more than the {closing.birdCount} birds in this case.</p>
           ) : unaccounted > 0 ? (
-            <p className="text-xs text-stone-500">{unaccounted} bird{unaccounted === 1 ? ' is' : 's are'} not accounted for; they'll be treated as back in the flock.</p>
+            <p className="text-xs text-stone-500 dark:text-[#94A3B8]">{unaccounted} bird{unaccounted === 1 ? ' is' : 's are'} not accounted for; they'll be treated as back in the flock.</p>
           ) : null}
           {diedNum > 0 && (
-            <p className="text-xs text-stone-600 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2">
+            <p className="text-xs text-stone-600 dark:text-[#94A3B8] bg-stone-50 dark:bg-[#252A2E] border border-stone-200 dark:border-[#2B3238] rounded-xl px-3 py-2">
               {diedNum} death{diedNum === 1 ? '' : 's'} will also be added to this batch's Mortality.
             </p>
           )}

@@ -11,7 +11,7 @@ import { BellIcon } from '../components/ui/BellIcon';
 
 const PAGE_SIZE = 20;
 
-const cardShell = 'bg-white border border-stone-200 rounded-xl shadow-xs overflow-hidden';
+const cardShell = 'bg-white dark:bg-[#1E2124] border border-stone-200 dark:border-[#2B3238] rounded-xl shadow-xs overflow-hidden';
 
 export function NotificationsPage() {
   const { notifications, unreadCount, status, error, now, refresh, markAllRead, remove, clearAll } = useNotifications();
@@ -59,12 +59,12 @@ export function NotificationsPage() {
     <div className="max-w-4xl lg:max-w-none mx-auto pb-12 space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <span className="w-12 h-12 rounded-full bg-[#0D5C3A] text-white flex items-center justify-center shrink-0 shadow-xs" aria-hidden="true">
-          <BellIcon size={22} className="brightness-0 invert" />
+        <span className="w-12 h-12 rounded-full bg-[#DFFF83] text-[#17191A] flex items-center justify-center shrink-0 shadow-xs" aria-hidden="true">
+          <BellIcon size={22} />
         </span>
         <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-stone-950 font-heading">Notifications</h1>
-          <p className="text-sm text-stone-500 mt-1.5 max-w-xl leading-relaxed">
+          <h1 className="text-2xl sm:text-3xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Notifications</h1>
+          <p className="text-sm text-stone-500 dark:text-[#94A3B8] mt-1.5 max-w-xl leading-relaxed">
             Stay updated with your farm activities, batch updates, and important alerts.
           </p>
         </div>
@@ -98,15 +98,15 @@ export function NotificationsPage() {
                   setCategory(next);
                   /** @type {HTMLElement | null} */ (e.currentTarget.parentElement?.querySelector(`[data-category="${next}"]`))?.focus();
                 }}
-                className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3A]/40 focus-visible:ring-offset-2 ${
-                  selected ? 'bg-[#0D5C3A] text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-sm font-semibold transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#B7DA3E]/50 focus-visible:ring-offset-2 ${
+                  selected ? 'bg-[#DFFF83] text-[#17191A] shadow-xs' : 'bg-stone-100 dark:bg-[#2B3238] text-stone-700 dark:text-[#94A3B8] hover:bg-stone-200 dark:hover:bg-[#374151]'
                 }`}
               >
                 {c.label}
                 {unread > 0 && (
                   <span
-                    className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold leading-5 text-center tabular-nums ${
-                      selected ? 'bg-white/20 text-white' : 'bg-white text-stone-600'
+                    className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold leading-5 text-center tabular-nums ${
+                      selected ? 'bg-[#17191A]/20 text-[#17191A]' : 'bg-red-500 text-white'
                     }`}
                   >
                     {unread}
@@ -123,7 +123,7 @@ export function NotificationsPage() {
             type="button"
             onClick={markAllRead}
             disabled={unreadCount === 0}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0D5C3A] hover:text-[#094229] hover:underline underline-offset-4 cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3A]/40 disabled:opacity-40 disabled:pointer-events-none"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#4D6600] hover:text-[#3A4D00] hover:underline underline-offset-4 cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-[#B7DA3E]/50 disabled:opacity-40 disabled:pointer-events-none"
           >
             <Check size={16} strokeWidth={2.25} aria-hidden="true" />
             Mark all as read
@@ -141,12 +141,12 @@ export function NotificationsPage() {
 
       {/* A refresh failed but earlier results are still on screen. */}
       {error && status === 'ready' && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-[13px] text-stone-600">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#1E2124] text-[13px] text-stone-600 dark:text-[#94A3B8]">
           <span>{error}</span>
           <button
             type="button"
             onClick={refresh}
-            className="inline-flex items-center gap-1 font-semibold text-[#0D5C3A] hover:underline cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3A]/40"
+            className="inline-flex items-center gap-1 font-semibold text-[#4D6600] hover:underline cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-[#B7DA3E]/50"
           >
             <RefreshCw size={13} strokeWidth={2} aria-hidden="true" /> Retry
           </button>
@@ -205,7 +205,7 @@ export function NotificationsPage() {
           <button
             type="button"
             onClick={() => setLimit((l) => l + PAGE_SIZE)}
-            className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-stone-100 text-sm font-semibold text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3A]/40"
+            className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-stone-100 dark:bg-[#2B3238] text-sm font-semibold text-stone-700 dark:text-[#94A3B8] hover:bg-stone-200 dark:hover:bg-[#374151] transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#B7DA3E]/50"
           >
             Show more
             <span className="text-stone-400 tabular-nums">{remaining}</span>
@@ -232,7 +232,7 @@ export function NotificationsPage() {
                 clearAll();
                 setConfirmClear(false);
               }}
-              className="h-9 px-4 rounded-lg bg-[#0D5C3A] text-sm font-semibold text-white hover:bg-[#094229] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#0D5C3A]/40 focus-visible:ring-offset-2"
+              className="h-9 px-4 rounded-lg bg-[#DFFF83] text-sm font-semibold text-[#17191A] hover:bg-[#C5E95A] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#B7DA3E]/50 focus-visible:ring-offset-2"
             >
               Clear all
             </button>

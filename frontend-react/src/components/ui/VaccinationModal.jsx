@@ -10,11 +10,12 @@ import { birdTypeLabel } from '../../lib/batch';
 import { toIso } from '../../lib/supplements';
 import { CalendarIcon } from './CalendarIcon';
 import { BellIcon } from './BellIcon';
+import { Spinner } from './Spinner';
 
 const GIVEN_BY = ['Myself', 'Farm staff', 'Vet'];
 
-const FIELD = 'w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#0D5C3A]/20 focus:border-[#0D5C3A] transition-all placeholder:text-stone-400';
-const LABEL = 'text-xs font-bold text-stone-800 block mb-1.5';
+const FIELD = 'w-full px-3.5 py-2.5 bg-white dark:bg-[#1E2124] border border-stone-300 dark:border-[#2B3238] rounded-xl text-sm text-stone-900 dark:text-[#F5F7F5] focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#64748B]';
+const LABEL = 'text-xs font-bold text-stone-800 dark:text-[#F5F7F5] block mb-1.5';
 
 function formatDisplayDate(iso) {
   if (!iso) return '';
@@ -31,8 +32,8 @@ function Pills({ options, value, onChange }) {
           onClick={() => onChange(value === opt ? '' : opt)}
           className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
             value === opt
-              ? 'bg-[#0D5C3A] text-white border-[#0D5C3A]'
-              : 'bg-white text-stone-600 border-stone-200 hover:border-[#0D5C3A]/40 hover:text-[#0D5C3A]'
+              ? 'bg-[#DFFF83] text-[#17191A] border-[#B7DA3E]'
+              : 'bg-white dark:bg-[#1E2124] text-stone-600 dark:text-[#94A3B8] border-stone-200 dark:border-[#2B3238] hover:border-[#D2EC7A] hover:text-[#4D6600] dark:hover:text-[#DFFF83]'
           }`}
         >
           {opt}
@@ -158,6 +159,16 @@ export function VaccinationModal({
     if (date && ((next === 'schedule' && date < todayIso) || (next === 'record' && date > todayIso))) setDate('');
   };
 
+  // Any day can be picked; the date decides what it means. A future day can
+  // only be a planned vaccination and a past day only one already given, so
+  // the mode follows instead of the calendar greying days out. Today keeps
+  // whichever mode the farmer chose.
+  const pickDate = (iso) => {
+    setDate(iso);
+    if (iso > todayIso && mode === 'record') setMode('schedule');
+    else if (iso < todayIso && mode === 'schedule') setMode('record');
+  };
+
   const canContinue = date && batchId;
   const canSave = canContinue && finalName && !submitting;
 
@@ -206,23 +217,23 @@ export function VaccinationModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={onClose} />
 
-      <div className="relative bg-white w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl z-10 animate-fade-in flex flex-col max-h-[92vh]">
+      <div className="relative bg-white dark:bg-[#17191A] w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl shadow-2xl z-10 animate-fade-in flex flex-col max-h-[92vh] border border-stone-200/50 dark:border-[#2B3238]">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-stone-100 shrink-0">
+        <div className="flex items-center justify-between gap-3 px-5 sm:px-6 pt-5 pb-4 border-b border-stone-100 dark:border-[#2B3238] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             {step === 2 && !prefill?.date && (
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-stone-500 dark:text-[#94A3B8] hover:bg-stone-100 dark:hover:bg-[#1E2124] transition-colors cursor-pointer shrink-0"
                 aria-label="Back to calendar"
               >
                 <ChevronLeft size={20} />
               </button>
             )}
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-stone-950 font-heading truncate">{heading}</h2>
-              <p className="text-xs text-stone-500 mt-0.5 truncate">
+              <h2 className="text-lg font-bold text-stone-950 dark:text-[#F5F7F5] font-heading truncate">{heading}</h2>
+              <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-0.5 truncate">
                 {step === 1
                   ? isRecord ? 'Pick the day it was given.' : 'Pick the day it is due. Existing appointments are shown on the calendar.'
                   : batch ? `${batch.name} · ${birdTypeLabel(batch.type)}` : 'Vaccine details'}
@@ -232,7 +243,7 @@ export function VaccinationModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 dark:text-[#94A3B8] hover:text-stone-900 dark:hover:text-[#F5F7F5] hover:bg-stone-100 dark:hover:bg-[#1E2124] transition-colors cursor-pointer shrink-0"
             aria-label="Close"
           >
             <X size={20} />
@@ -243,7 +254,7 @@ export function VaccinationModal({
           {step === 1 && (
             <>
               {/* Mode */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
+              <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 dark:bg-[#1E2124] rounded-2xl">
                 {[
                   { id: 'schedule', label: 'Schedule for later', icon: CalendarClock },
                   { id: 'record', label: 'Record as given', icon: ClipboardCheck },
@@ -253,7 +264,7 @@ export function VaccinationModal({
                     type="button"
                     onClick={() => switchMode(m.id)}
                     className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                      mode === m.id ? 'bg-white text-[#0D5C3A] shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                      mode === m.id ? 'bg-white dark:bg-[#17191A] text-[#4D6600] dark:text-[#DFFF83] shadow-xs' : 'text-stone-500 dark:text-[#94A3B8] hover:text-stone-800 dark:hover:text-[#F5F7F5]'
                     }`}
                   >
                     <m.icon size={15} />
@@ -274,26 +285,26 @@ export function VaccinationModal({
                 </div>
               )}
 
-              <CalendarPicker
-                value={date}
-                onChange={setDate}
-                events={calendarEvents}
-                minDate={isRecord ? undefined : todayIso}
-                maxDate={isRecord ? todayIso : undefined}
-              />
+              <div>
+                <label className={LABEL}>Date <span className="text-rose-500">*</span></label>
+                <CalendarPicker value={date} onChange={pickDate} events={calendarEvents} />
+                {!date && (
+                  <p className="mt-2 text-xs text-stone-500 dark:text-[#94A3B8]">Pick a date on the calendar to continue.</p>
+                )}
+              </div>
             </>
           )}
 
           {step === 2 && (
             <>
               {/* Date chip */}
-              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#EAF5EF] border border-[#CFE8D9] rounded-2xl">
-                <CalendarIcon size={15} className="text-[#0D5C3A] shrink-0" />
-                <span className="text-sm font-bold text-[#0D472B]">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#F7FFE0] dark:bg-[#142312] border border-[#E3F5A8] dark:border-[#274220] rounded-2xl">
+                <CalendarIcon size={15} className="text-[#4D6600] dark:text-[#DFFF83] shrink-0" />
+                <span className="text-sm font-bold text-[#3A4D00] dark:text-[#DFFF83]">
                   {isRecord ? 'Given on ' : 'Due on '}{formatDisplayDate(date)}
                 </span>
                 {!prefill?.date && (
-                  <button type="button" onClick={() => setStep(1)} className="ml-auto text-[11px] font-bold text-[#0D5C3A] hover:underline cursor-pointer">
+                  <button type="button" onClick={() => setStep(1)} className="ml-auto text-[11px] font-bold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer">
                     Change
                   </button>
                 )}
@@ -322,12 +333,12 @@ export function VaccinationModal({
 
               {/* What this vaccine needs */}
               {vaccine && !isOther && (
-                <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 space-y-2">
+                <div className="rounded-2xl border border-stone-200 dark:border-[#2B3238] bg-stone-50 dark:bg-[#1E2124] p-4 space-y-2">
                   <div className="flex items-start gap-2.5">
-                    <Info size={15} className="text-[#0D5C3A] shrink-0 mt-0.5" />
-                    <div className="text-xs text-stone-700 space-y-1">
-                      <div><span className="font-bold text-stone-900">Given by:</span> {ROUTES[vaccine.route].label}{vaccine.site ? ` — ${vaccine.site}` : ''}</div>
-                      {vaccine.typicalAge && <div><span className="font-bold text-stone-900">Usual timing:</span> {vaccine.typicalAge}</div>}
+                    <Info size={15} className="text-[#4D6600] dark:text-[#DFFF83] shrink-0 mt-0.5" />
+                    <div className="text-xs text-stone-700 dark:text-[#94A3B8] space-y-1">
+                      <div><span className="font-bold text-stone-900 dark:text-[#F5F7F5]">Given by:</span> {ROUTES[vaccine.route].label}{vaccine.site ? ` — ${vaccine.site}` : ''}</div>
+                      {vaccine.typicalAge && <div><span className="font-bold text-stone-900 dark:text-[#F5F7F5]">Usual timing:</span> {vaccine.typicalAge}</div>}
                     </div>
                   </div>
                 </div>
@@ -350,7 +361,7 @@ export function VaccinationModal({
               </div>
 
               {routeInfo && (
-                <p className="text-[11px] leading-relaxed text-stone-500 bg-white border border-dashed border-stone-300 rounded-xl px-3.5 py-2.5">
+                <p className="text-[11px] leading-relaxed text-stone-500 dark:text-[#94A3B8] bg-white dark:bg-[#1E2124] border border-dashed border-stone-300 dark:border-[#2B3238] rounded-xl px-3.5 py-2.5">
                   {routeInfo.tip}
                 </p>
               )}
@@ -371,9 +382,9 @@ export function VaccinationModal({
                 </div>
               </div>
               {vialsNeeded > 0 && (
-                <p className="text-xs text-stone-600 -mt-2">
+                <p className="text-xs text-stone-600 dark:text-[#94A3B8] -mt-2">
                   {isRecord ? 'That is ' : 'You will need '}
-                  <span className="font-bold text-stone-900">{vialsNeeded} vial{vialsNeeded === 1 ? '' : 's'}</span>
+                  <span className="font-bold text-stone-900 dark:text-[#F5F7F5]">{vialsNeeded} vial{vialsNeeded === 1 ? '' : 's'}</span>
                   {' '}of {dosesPerVial.toLocaleString()} doses.
                 </p>
               )}
@@ -386,29 +397,29 @@ export function VaccinationModal({
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className={LABEL}>Vaccine batch no. <span className="text-stone-400 font-normal">(optional)</span></label>
+                      <label className={LABEL}>Vaccine batch no. <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
                       <input type="text" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} className={FIELD} placeholder="On the vial label" />
                     </div>
                     <div>
-                      <label className={LABEL}>Cost (₦) <span className="text-stone-400 font-normal">(optional)</span></label>
+                      <label className={LABEL}>Cost (₦) <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
                       <input type="number" min="0" inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} className={FIELD} placeholder="e.g. 4500" />
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="flex items-start gap-3 rounded-2xl border border-stone-200 p-4">
-                  <div className="w-8 h-8 rounded-full bg-[#EAF5EF] flex items-center justify-center shrink-0">
-                    <BellIcon size={15} className="text-[#0D5C3A]" />
+                <div className="flex items-start gap-3 rounded-2xl border border-stone-200 dark:border-[#2B3238] p-4 bg-stone-50 dark:bg-[#1E2124]">
+                  <div className="w-8 h-8 rounded-full bg-[#F7FFE0] dark:bg-[#142312] flex items-center justify-center shrink-0">
+                    <BellIcon size={15} className="text-[#4D6600] dark:text-[#DFFF83]" />
                   </div>
-                  <div className="text-xs text-stone-600">
-                    <div className="font-bold text-stone-900">Reminder</div>
+                  <div className="text-xs text-stone-600 dark:text-[#94A3B8]">
+                    <div className="font-bold text-stone-900 dark:text-[#F5F7F5]">Reminder</div>
                     You will get an email reminder 3 days before and again on the day.
                   </div>
                 </div>
               )}
 
               <div>
-                <label className={LABEL}>Notes <span className="text-stone-400 font-normal">(optional)</span></label>
+                <label className={LABEL}>Notes <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
                 <textarea
                   rows={2}
                   placeholder={isRecord ? 'e.g. Some birds missed, repeat next week' : 'e.g. Give early morning before feeding'}
@@ -422,13 +433,13 @@ export function VaccinationModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 sm:px-6 pb-5 pt-3 border-t border-stone-100 shrink-0 space-y-2">
+        <div className="px-5 sm:px-6 pb-5 pt-3 border-t border-stone-100 dark:border-[#2B3238] shrink-0 space-y-2">
           {step === 1 ? (
             <button
               type="button"
               onClick={() => setStep(2)}
               disabled={!canContinue}
-              className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white shadow-xs"
+              className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#DFFF83] hover:bg-[#C5E95A] active:bg-[#B3D944] text-[#17191A] shadow-xs"
             >
               <span>{!batchId ? 'Choose a batch' : !date ? 'Pick a date' : 'Continue'}</span>
               {canContinue && <ArrowRight size={16} />}
@@ -436,10 +447,10 @@ export function VaccinationModal({
           ) : (
             <>
               {finalName && (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-700">
-                  <ShieldCheck size={15} className="text-[#0D5C3A] shrink-0" />
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-stone-50 dark:bg-[#1E2124] border border-stone-200 dark:border-[#2B3238] rounded-2xl text-xs text-stone-700 dark:text-[#94A3B8]">
+                  <ShieldCheck size={15} className="text-[#4D6600] dark:text-[#DFFF83] shrink-0" />
                   <span className="truncate">
-                    <strong className="text-stone-900">{finalName}</strong>
+                    <strong className="text-stone-900 dark:text-[#F5F7F5]">{finalName}</strong>
                     {doseNumber && ` (${doseNumber})`}
                     {routeInfo && ` · ${routeInfo.label}`}
                     {birdCount > 0 && ` · ${birdCount.toLocaleString()} birds`}
@@ -450,11 +461,11 @@ export function VaccinationModal({
                 type="button"
                 onClick={handleSave}
                 disabled={!canSave}
-                className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white shadow-xs"
+                className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#DFFF83] hover:bg-[#C5E95A] active:bg-[#B3D944] text-[#17191A] shadow-xs"
               >
                 {submitting ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <Spinner />
                     Saving…
                   </>
                 ) : (

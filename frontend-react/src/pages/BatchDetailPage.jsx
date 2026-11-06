@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   Clock,
@@ -16,15 +16,12 @@ import {
   RotateCcw,
   Stethoscope,
 } from 'lucide-react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useBatches } from '../context/BatchContext';
 import { useAuth } from '../context/AuthContext';
 import { CompleteBatchModal } from '../components/ui/CompleteBatchModal';
-import { PerformanceBars } from '../components/ui/PerformanceBars';
 import { SickBayTab } from '../components/sickbay/SickBayTab';
-import { assessPerformance, RATING_STYLES } from '../lib/performance';
 import { penForBatch } from '../lib/pens';
-import { batchAgeWeeks } from '../lib/feeds';
 import { getLogs, createLog } from '../api/logs';
 import { QUEUED_SAVE_MESSAGE } from '../lib/offlineQueue';
 import { getSchedule } from '../api/schedule';
@@ -35,6 +32,9 @@ import { buildHealthEvents } from '../lib/healthEvents';
 import { ROUTES } from '../lib/vaccines';
 import { loadSupplements, describeDose, findSupplementType, toIso } from '../lib/supplements';
 import { Modal } from '../components/ui/Modal';
+import { Spinner } from '../components/ui/Spinner';
+import { LineChart } from '../components/ui/LineChart';
+import { buildPerformance } from '../lib/production';
 import { VaccinationModal } from '../components/ui/VaccinationModal';
 import { DeleteBatchModal } from '../components/ui/DeleteBatchModal';
 import { useToast } from '../components/ui/Toast';
@@ -65,75 +65,82 @@ const TABS = [
 function HeaderStat({ icon: Icon, label, value }) {
   return (
     <div className="px-3 sm:px-5 first:pl-0 last:pr-0 min-w-0">
-      <div className="flex items-center gap-1.5 sm:gap-2 text-stone-500">
-        <Icon size={15} strokeWidth={2.5} className="text-stone-700 shrink-0" />
+      <div className="flex items-center gap-1.5 sm:gap-2 text-stone-500 dark:text-[#94A3B8]">
+        <Icon size={15} strokeWidth={2.5} className="text-stone-700 dark:text-[#DFFF83] shrink-0" />
         <span className="text-[11px] sm:text-xs truncate">{label}</span>
       </div>
-      <div className="text-lg sm:text-xl font-bold text-stone-950 font-heading mt-1 whitespace-nowrap">{value}</div>
+      <div className="text-lg sm:text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mt-1 whitespace-nowrap">{value}</div>
     </div>
   );
 }
 
 function SummaryTile({ icon: Icon, label, value, suffix, hint }) {
   return (
-    <div className="rounded-xl border border-stone-200 p-4">
-      <div className="flex items-center gap-2 text-stone-500">
-        <Icon size={15} strokeWidth={2.5} className="text-stone-500 shrink-0" />
+    <div className="rounded-xl border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#1E2124] p-4">
+      <div className="flex items-center gap-2 text-stone-500 dark:text-[#64748B]">
+        <Icon size={15} strokeWidth={2.5} className="text-stone-500 dark:text-[#64748B] shrink-0" />
         <span className="text-xs font-medium truncate">{label}</span>
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className="text-2xl font-bold text-stone-950 font-heading">{value}</span>
-        {suffix && <span className="text-xs text-stone-400">{suffix}</span>}
+        <span className="text-2xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{value}</span>
+        {suffix && <span className="text-xs text-stone-400 dark:text-[#64748B]">{suffix}</span>}
       </div>
-      {hint && <div className="text-[11px] text-stone-400 mt-0.5">{hint}</div>}
+      {hint && <div className="text-[11px] text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
     </div>
   );
 }
 
 function InsightRow({ icon: Icon, label, sub, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-stone-100 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-stone-100 dark:border-[#2B3238] last:border-0">
       <div className="flex items-start gap-2.5 min-w-0">
-        <Icon size={15} strokeWidth={2.5} className="text-stone-400 shrink-0 mt-0.5" />
+        <Icon size={15} strokeWidth={2.5} className="text-stone-400 dark:text-[#64748B] shrink-0 mt-0.5" />
         <div className="min-w-0">
-          <div className="text-xs text-stone-600 truncate">{label}</div>
-          {sub && <div className="text-[11px] text-stone-400 truncate">{sub}</div>}
+          <div className="text-xs text-stone-600 dark:text-[#94A3B8] truncate">{label}</div>
+          {sub && <div className="text-[11px] text-stone-400 dark:text-[#64748B] truncate">{sub}</div>}
         </div>
       </div>
-      <span className="text-sm font-semibold text-stone-900 shrink-0">{value}</span>
+      <span className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] shrink-0">{value}</span>
     </div>
   );
 }
 
 function EmptyState({ icon: Icon, title, description }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-6 flex items-center gap-4">
-      <div className="w-11 h-11 rounded-full bg-white border border-stone-200 flex items-center justify-center shrink-0">
-        <Icon size={18} strokeWidth={2.5} className="text-stone-400" />
+    <div className="rounded-xl border border-stone-200 dark:border-[#2B3238] bg-stone-50/60 dark:bg-[#17191A] p-6 flex items-center gap-4">
+      <div className="w-11 h-11 rounded-full bg-white dark:bg-[#1E2124] border border-stone-200 dark:border-[#2B3238] flex items-center justify-center shrink-0">
+        <Icon size={18} strokeWidth={2.5} className="text-stone-400 dark:text-[#64748B]" />
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-stone-800">{title}</div>
-        {description && <div className="text-xs text-stone-500 mt-0.5">{description}</div>}
+        <div className="text-sm font-semibold text-stone-800 dark:text-[#F5F7F5]">{title}</div>
+        {description && <div className="text-xs text-stone-500 dark:text-[#94A3B8] mt-0.5">{description}</div>}
       </div>
     </div>
   );
 }
 
-function LogRow({ icon: Icon, primary, secondary, value }) {
+function LogRow({ icon: Icon, primary, secondary, value, pending }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-stone-100 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-stone-100 dark:border-[#2B3238] last:border-0">
       <div className="flex items-center gap-3 min-w-0">
         {Icon && (
-          <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
-            <Icon size={16} strokeWidth={2.5} className="text-stone-600" />
+          <div className="w-9 h-9 rounded-lg bg-stone-100 dark:bg-[#2B3238] flex items-center justify-center shrink-0">
+            <Icon size={16} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
           </div>
         )}
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-stone-900 truncate">{primary}</div>
-          {secondary && <div className="text-xs text-stone-500 truncate mt-0.5">{secondary}</div>}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] truncate">{primary}</span>
+            {pending && (
+              <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-[#261B06] border border-amber-200 dark:border-[#4A350C] text-[10px] font-semibold text-amber-800 dark:text-[#FCD34D]">
+                Waiting to send
+              </span>
+            )}
+          </div>
+          {secondary && <div className="text-xs text-stone-500 dark:text-[#64748B] truncate mt-0.5">{secondary}</div>}
         </div>
       </div>
-      {value && <span className="text-sm font-semibold text-stone-900 shrink-0">{value}</span>}
+      {value && <span className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] shrink-0">{value}</span>}
     </div>
   );
 }
@@ -143,10 +150,10 @@ function QuickAction({ icon: Icon, label, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl border border-stone-200 p-4 flex flex-col items-center justify-center gap-2 text-center hover:border-stone-300 hover:bg-stone-50 transition-colors cursor-pointer"
+      className="rounded-xl border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#1E2124] p-4 flex flex-col items-center justify-center gap-2 text-center hover:border-stone-300 dark:hover:border-[#374151] hover:bg-stone-50 dark:hover:bg-[#2B3238] transition-colors cursor-pointer"
     >
-      <Icon size={20} strokeWidth={2.5} className="text-stone-800" />
-      <span className="text-xs font-semibold text-stone-800 leading-tight">{label}</span>
+      <Icon size={20} strokeWidth={2.5} className="text-stone-800 dark:text-[#F5F7F5]" />
+      <span className="text-xs font-semibold text-stone-800 dark:text-[#F5F7F5] leading-tight">{label}</span>
     </button>
   );
 }
@@ -181,6 +188,9 @@ export function BatchDetailPage() {
 
   // Modal states for logging
   const [logModal, setLogModal] = useState(null); // 'mortality' | 'feed' | 'eggs' | 'vaccine' | 'multivitamin'
+  // True while a bird loss / eggs / weight entry is being saved.
+  const [savingLog, setSavingLog] = useState(false);
+  const savingLogRef = useRef(false);
   const [logDate, setLogDate] = useState(new Date().toISOString().slice(0, 10));
 
   // Form fields
@@ -193,6 +203,24 @@ export function BatchDetailPage() {
 
   const [avgWeightKg, setAvgWeightKg] = useState('');
   const [weightSampleSize, setWeightSampleSize] = useState('');
+
+  // The dashboard's "Log Bird Loss" quick action lands here with ?log=mortality
+  // so it opens this page's own mortality form rather than a copy of it. The
+  // param is cleared straight away so a refresh or back-navigation doesn't
+  // reopen the form. Completed batches never open it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedLog = searchParams.get('log');
+  useEffect(() => {
+    if (!requestedLog || !batch) return;
+    if (requestedLog === 'mortality' && batch.status !== 'closed') {
+      setLogModal('mortality');
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('log');
+      return next;
+    }, { replace: true });
+  }, [requestedLog, batch, setSearchParams]);
 
   useEffect(() => {
     if (!batchId) return;
@@ -241,7 +269,7 @@ export function BatchDetailPage() {
         <p className="text-sm text-stone-500">The requested batch could not be found or has been removed.</p>
         <Link
           to="/dashboard"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D5C3A] text-white rounded-xl text-xs font-semibold"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#DFFF83] text-[#17191A] rounded-xl text-xs font-semibold"
         >
           <ChevronLeft size={16} /> Return to Home
         </Link>
@@ -287,8 +315,14 @@ export function BatchDetailPage() {
   // Handlers for logging
   const handleLogMortality = async (e) => {
     e.preventDefault();
+    if (!logDate) return toast('Please pick a date', 'error');
     if (logDate > todayIso) return toast("You can't record something for a future date", 'error');
     if (!mortCount || Number(mortCount) <= 0) return toast('Please enter count', 'error');
+    // One save at a time: a second press while this one is in flight would
+    // create a duplicate entry.
+    if (savingLogRef.current) return;
+    savingLogRef.current = true;
+    setSavingLog(true);
     try {
       const createdItem = await createLog(batchId, 'mortality', {
         date: logDate,
@@ -312,15 +346,24 @@ export function BatchDetailPage() {
       setLogModal(null);
     } catch (err) {
       toast(err.message || 'Failed to record mortality', 'error');
+    } finally {
+      savingLogRef.current = false;
+      setSavingLog(false);
     }
   };
 
   const handleLogEggs = async (e) => {
     e.preventDefault();
+    if (!logDate) return toast('Please pick a date', 'error');
     if (logDate > todayIso) return toast("You can't record something for a future date", 'error');
     const batchType = (batch?.type || '').toLowerCase();
     if (!laysEggs(batchType)) return toast(`Egg logging isn't set up for ${birdTypeLabel(batchType)} batches`, 'error');
     if (!eggCrates && !looseEggs) return toast('Enter crates or loose eggs', 'error');
+    // One save at a time: a second press while this one is in flight would
+    // create a duplicate entry.
+    if (savingLogRef.current) return;
+    savingLogRef.current = true;
+    setSavingLog(true);
     try {
       const payload = {
         date: logDate,
@@ -342,13 +385,22 @@ export function BatchDetailPage() {
       setLogModal(null);
     } catch (err) {
       toast(err.message || 'Failed to log eggs', 'error');
+    } finally {
+      savingLogRef.current = false;
+      setSavingLog(false);
     }
   };
 
   const handleLogWeight = async (e) => {
     e.preventDefault();
+    if (!logDate) return toast('Please pick a date', 'error');
     if (logDate > todayIso) return toast("You can't record something for a future date", 'error');
     if (!avgWeightKg || Number(avgWeightKg) <= 0) return toast('Enter the average bird weight', 'error');
+    // One save at a time: a second press while this one is in flight would
+    // create a duplicate entry.
+    if (savingLogRef.current) return;
+    savingLogRef.current = true;
+    setSavingLog(true);
     try {
       const createdItem = await createLog(batchId, 'weight', {
         date: logDate,
@@ -369,6 +421,9 @@ export function BatchDetailPage() {
       setLogModal(null);
     } catch (err) {
       toast(err.message || 'Failed to record weight', 'error');
+    } finally {
+      savingLogRef.current = false;
+      setSavingLog(false);
     }
   };
 
@@ -461,6 +516,7 @@ export function BatchDetailPage() {
       birds: r.birdsVaccinated,
       administeredBy: r.administeredBy,
       lotNumber: r.lotNumber,
+      pending: r.pending,
     })),
     ...scheduleList
       .filter((s) => s.status === 'done' && !linkedScheduleIds.has(s.scheduleId))
@@ -484,12 +540,12 @@ export function BatchDetailPage() {
 
   // Every log type merged for the Daily Logs tab, newest first.
   const dailyLogs = [
-    ...feedLogs.map((e) => ({ date: e.date, kind: 'Feed logged', detail: `${e.feedType || 'Feed'} - ${formatBags(feedBags(e))}`, icon: FeedIcon })),
-    ...mortalityLogs.map((e) => ({ date: e.date, kind: 'Mortality recorded', detail: `${Number(e.count) || 0} birds${e.note ? ` (${e.note})` : ''}`, icon: TrendingDown })),
-    ...weightHistory.map((w) => ({ date: w.date, kind: 'Weight recorded', detail: `${formatKg(w.averageWeightKg)} average${w.sampleSize ? ` (${w.sampleSize} birds weighed)` : ''}`, icon: WeightIcon })),
-    ...eggLogs.map((e) => ({ date: e.date, kind: 'Eggs recorded', detail: `${Number(e.crates) || 0} crates, ${Number(e.looseEggs) || 0} loose`, icon: EggIcon })),
+    ...feedLogs.map((e) => ({ pending: e.pending, date: e.date, kind: 'Feed logged', detail: `${e.feedType || 'Feed'} - ${formatBags(feedBags(e))}`, icon: FeedIcon })),
+    ...mortalityLogs.map((e) => ({ pending: e.pending, date: e.date, kind: 'Mortality recorded', detail: `${Number(e.count) || 0} birds${e.note ? ` (${e.note})` : ''}`, icon: TrendingDown })),
+    ...weightHistory.map((w) => ({ pending: w.pending, date: w.date, kind: 'Weight recorded', detail: `${formatKg(w.averageWeightKg)} average${w.sampleSize ? ` (${w.sampleSize} birds weighed)` : ''}`, icon: WeightIcon })),
+    ...eggLogs.map((e) => ({ pending: e.pending, date: e.date, kind: 'Eggs recorded', detail: `${Number(e.crates) || 0} crates, ${Number(e.looseEggs) || 0} loose`, icon: EggIcon })),
     ...multivitaminLogs.map((m) => ({ date: m.date, kind: `${findSupplementType(m.type)?.label || 'Vitamin'} given`, detail: [m.product, describeDose(m)].filter(Boolean).join(' - '), icon: PillIcon })),
-    ...vaccinationHistory.map((v) => ({ date: v.date, kind: 'Vaccination given', detail: [v.vaccineName, v.doseNumber, ROUTES[v.route]?.label].filter(Boolean).join(' - '), icon: VaccineIcon })),
+    ...vaccinationHistory.map((v) => ({ pending: v.pending, date: v.date, kind: 'Vaccination given', detail: [v.vaccineName, v.doseNumber, ROUTES[v.route]?.label].filter(Boolean).join(' - '), icon: VaccineIcon })),
     ...dueVaccines.map((s) => ({ date: s.dueDate, kind: 'Vaccination due', detail: [s.vaccineName, s.doseNumber].filter(Boolean).join(' - '), icon: VaccineIcon })),
   ]
     .filter((item) => item.date)
@@ -497,7 +553,7 @@ export function BatchDetailPage() {
 
   const closed = batch.status === 'closed';
 
-  // Performance, judged by what this bird type is raised for (lib/performance.js).
+  // Running costs, passed to the Complete Batch form to work out profit.
   const vaccineCost = vaccRecords.reduce((sum, r) => sum + (Number(r.costNaira) || 0), 0);
   const supplementCost = multivitaminLogs.reduce((sum, m) => sum + (Number(m.costNaira) || 0), 0);
   const costs = {
@@ -506,16 +562,16 @@ export function BatchDetailPage() {
     vaccines: vaccineCost,
     supplements: supplementCost,
   };
-  const performance = assessPerformance({
-    purpose,
+
+  // Production trend: the same plain chart as the dashboard (lib/production.js),
+  // eggs for layers, weigh-ins for meat birds, birds alive otherwise. No rating.
+  const production = buildPerformance(
     batch,
-    eggLogs,
-    currentBirds,
-    fcr,
-    ageWeeks: batchAgeWeeks(batch),
-    costs,
-  });
-  const ratingStyle = RATING_STYLES[performance.rating];
+    { eggs: isLayer ? eggLogs : [], feed: feedLogs, mortality: mortalityLogs },
+    weightLogs,
+    currentBirds
+  );
+  const productionTitle = { eggs: 'Egg collection', weight: 'Growth', alive: 'Flock size' }[production.kind];
   const safeName = (batch.name || 'batch').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
   // Each tab exports the rows it is showing, so the file always matches what
@@ -675,27 +731,27 @@ export function BatchDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="bg-white rounded-xl shadow-sm p-5">
+      <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
         <div className="flex flex-col lg:flex-row lg:items-center gap-5">
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <img
               src={batchImage(batch)}
               alt={batch.name}
-              className="w-20 h-20 rounded-lg object-cover bg-stone-100 shrink-0"
+              className="w-20 h-20 rounded-lg object-cover bg-stone-100 dark:bg-[#2B3238] shrink-0"
             />
             <div className="min-w-0 space-y-2">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold text-stone-950 font-heading truncate">{batch.name}</h1>
+                <h1 className="text-xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading truncate">{batch.name}</h1>
                 <span className={typePillClass(batchType)}>{birdTypeLabel(batchType)}</span>
               </div>
-              <div className="space-y-1.5 text-xs text-stone-600">
+              <div className="space-y-1.5 text-xs text-stone-600 dark:text-[#94A3B8]">
                 <div className="inline-flex items-center gap-1.5">
-                  <CalendarIcon size={13} strokeWidth={2.5} className="text-stone-500" />
+                  <CalendarIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#64748B]" />
                   {formatDate(batch.startDate)} - {batch.closedAt ? formatDate(batch.closedAt) : 'Ongoing'}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                   <span className="inline-flex items-center gap-1.5">
-                    <BirdIcon size={13} className="text-stone-500" />
+                    <BirdIcon size={13} className="text-stone-500 dark:text-[#64748B]" />
                     {Number(batch.birdCount || 0).toLocaleString()} birds
                   </span>
                   <span className="inline-flex items-center gap-1.5">
@@ -712,7 +768,7 @@ export function BatchDetailPage() {
               <span
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold border inline-flex items-center gap-1.5 ${
                   closed
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ? 'bg-[#F7FFE0] text-[#4D6600] border-[#E3F5A8]'
                     : 'bg-sky-50 text-sky-700 border-sky-200'
                 }`}
               >
@@ -731,7 +787,7 @@ export function BatchDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowCompleteModal(true)}
-                  className="h-8 px-3 rounded-lg bg-[#0D5C3A] hover:bg-[#094229] text-xs font-semibold text-white inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  className="h-8 px-3 rounded-lg bg-[#DFFF83] hover:bg-[#C5E95A] text-xs font-semibold text-[#17191A] inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                 >
                   <Flag size={13} strokeWidth={2.5} /> Complete Batch
                 </button>
@@ -741,13 +797,13 @@ export function BatchDetailPage() {
                 onClick={() => setShowDeleteModal(true)}
                 aria-label={`Delete ${batch.name}`}
                 title={`Delete ${batch.name}`}
-                className="w-8 h-8 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <Trash2 size={15} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 sm:flex items-stretch divide-x divide-stone-200">
+            <div className="grid grid-cols-3 sm:flex items-stretch divide-x divide-stone-200 dark:divide-[#2B3238]">
               <HeaderStat icon={BirdIcon} label="Total Birds" value={Number(batch.birdCount || 0).toLocaleString()} />
               {closed && batch.birdsSold != null ? (
                 <HeaderStat icon={ShoppingCart} label="Birds Sold" value={Number(batch.birdsSold).toLocaleString()} />
@@ -761,7 +817,7 @@ export function BatchDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-stone-200">
+      <div className="border-b border-stone-200 dark:border-[#2B3238]">
         <div className="flex gap-1 overflow-x-auto scrollbar-none">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -771,13 +827,12 @@ export function BatchDetailPage() {
                 type="button"
                 onClick={(e) => {
                   setActiveTab(tab.id);
-                  // On phones the tab row scrolls sideways; keep the chosen tab fully in view.
                   e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
                 }}
                 className={`shrink-0 whitespace-nowrap px-3.5 sm:px-4 py-2.5 rounded-t-lg text-sm transition-colors cursor-pointer border-b-2 ${
                   isActive
-                    ? 'bg-[#EAF5EF] text-[#0D5C3A] font-semibold border-[#0D5C3A]'
-                    : 'text-stone-500 border-transparent hover:text-stone-900 hover:bg-stone-50'
+                    ? 'bg-[#F7FFE0] dark:bg-[#142312] text-[#4D6600] dark:text-[#DFFF83] font-semibold border-[#B7DA3E]'
+                    : 'text-stone-500 dark:text-[#64748B] border-transparent hover:text-stone-900 dark:hover:text-[#F5F7F5] hover:bg-stone-50 dark:hover:bg-[#1E2124]'
                 }`}
               >
                 {tab.label}
@@ -792,8 +847,8 @@ export function BatchDetailPage() {
         <div className="space-y-5 min-w-0">
           {activeTab === 'overview' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Batch Summary</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Batch Summary</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                   <SummaryTile
                     icon={Percent}
@@ -807,79 +862,118 @@ export function BatchDetailPage() {
                     value={totalMortality.toLocaleString()}
                     suffix={lossPercent == null ? null : '(' + lossPercent + '%)'}
                   />
-                  <SummaryTile
-                    icon={EggIcon}
-                    label="Average Egg Production"
-                    value={avgEggsPerDay == null ? '-' : avgEggsPerDay.toLocaleString()}
-                    hint={isLayer ? '(Per day)' : '(Egg-laying birds only)'}
-                  />
-                  <SummaryTile
-                    icon={EggIcon}
-                    label="Total Eggs Collected"
-                    value={totalEggs.toLocaleString()}
-                    hint={totalEggs > 0 && avgEggsPerDay ? '(avg. ' + avgEggsPerDay + '/day)' : null}
-                  />
+                  {/* Eggs only matter for birds that lay; meat birds get weight and feed instead. */}
+                  {isLayer ? (
+                    <>
+                      <SummaryTile
+                        icon={EggIcon}
+                        label="Average Egg Production"
+                        value={avgEggsPerDay == null ? '-' : avgEggsPerDay.toLocaleString()}
+                        hint="(Per day)"
+                      />
+                      <SummaryTile
+                        icon={EggIcon}
+                        label="Total Eggs Collected"
+                        value={totalEggs.toLocaleString()}
+                        hint={totalEggs > 0 && avgEggsPerDay ? '(avg. ' + avgEggsPerDay + '/day)' : null}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <SummaryTile
+                        icon={WeightIcon}
+                        label="Latest Average Weight"
+                        value={latestWeight ? formatKg(latestWeight.averageWeightKg) : '-'}
+                        hint={latestWeight ? `(Weighed ${formatDate(latestWeight.date)})` : '(No weigh-ins yet)'}
+                      />
+                      <SummaryTile
+                        icon={FeedIcon}
+                        label="Total Feed Used"
+                        value={totalFeedBags > 0 ? formatBags(totalFeedBags) : '-'}
+                        hint={totalFeedCost > 0 ? `(₦${totalFeedCost.toLocaleString()})` : null}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              {/* Production: the one trend that matters for this bird type, as recorded. No rating. */}
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-bold text-stone-950 font-heading">Production Performance</h2>
-                    <p className="text-xs text-stone-500 mt-0.5 truncate">
-                      <span className="font-semibold text-stone-800">{performance.headline}</span>
-                      <span className="text-stone-300"> · </span>
-                      {performance.basis}
-                    </p>
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold border shrink-0 ${ratingStyle.pill}`}>
-                    {ratingStyle.label}
-                  </span>
-                </div>
-
-                {performance.bars?.length > 0 && (
-                  <div className="mt-4">
-                    <PerformanceBars bars={performance.bars} />
-                  </div>
-                )}
-
-                {performance.metrics.length > 0 && (
-                  <dl className="mt-3 pt-3 border-t border-stone-100 flex flex-wrap gap-x-6 gap-y-2">
-                    {performance.metrics.map((m) => (
-                      <div key={m.label} className="min-w-0">
-                        <dt className="text-[11px] text-stone-500">{m.label}</dt>
-                        <dd className="text-sm font-semibold text-stone-950 tabular-nums">{m.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                  <details className="group text-[11px] text-stone-500">
-                    <summary className="cursor-pointer select-none list-none hover:text-stone-800 inline-flex items-center gap-1">
-                      <span className="group-open:rotate-90 transition-transform">›</span> How this is judged
-                    </summary>
-                    <p className="mt-1.5 max-w-xl leading-relaxed">{performance.detail}</p>
-                  </details>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{productionTitle}</h2>
                   {(purpose === 'meat' || purpose === 'dual') && !closed && (
                     <button
                       type="button"
                       onClick={() => setShowCompleteModal(true)}
-                      className="text-[11px] font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                      className="text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer shrink-0"
                     >
                       Record sales to see profit
                     </button>
                   )}
                 </div>
+
+                {loading ? (
+                  <div className="mt-4 h-40 rounded-lg bg-stone-100 dark:bg-[#252A2E] animate-pulse" />
+                ) : production.empty ? (
+                  <p className="mt-3 text-sm text-stone-500 dark:text-[#94A3B8]">{production.empty}</p>
+                ) : (
+                  <>
+                    <div className="mt-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+                      <div>
+                        <div className="text-xs text-stone-500 dark:text-[#94A3B8]">
+                          {production.title} · {production.caption}
+                        </div>
+                        <div className="mt-1 flex items-baseline gap-1.5">
+                          <span className="text-3xl font-semibold font-heading text-stone-950 dark:text-[#F5F7F5] tabular-nums leading-none">{production.value}</span>
+                          <span className="text-sm text-stone-500 dark:text-[#94A3B8]">{production.suffix}</span>
+                        </div>
+                      </div>
+                      {production.change && (
+                        <span className={`inline-flex items-center gap-1 text-xs ${production.change.up ? 'text-[#4D6600] dark:text-[#DFFF83]' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {production.change.up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                          {production.change.text}
+                        </span>
+                      )}
+                    </div>
+
+                    {production.extras?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-stone-500 dark:text-[#94A3B8]">
+                        {production.extras.map((x) => (
+                          <span key={x.label}>
+                            {x.label}: <strong className="font-semibold text-stone-900 dark:text-[#F5F7F5]">{x.value}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      {production.points ? (
+                        <LineChart points={production.points} formatTick={production.formatTick} />
+                      ) : (
+                        <p className="text-sm text-stone-500 dark:text-[#94A3B8]">{production.thin}</p>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Key Insights</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Key Insights</h2>
                 <div>
-                  <InsightRow
-                    icon={EggIcon}
-                    label="Peak egg production (if applicable)"
-                    value={peakEggDay == null ? '-' : peakEggDay.toLocaleString() + ' eggs'}
-                  />
+                  {isLayer ? (
+                    <InsightRow
+                      icon={EggIcon}
+                      label="Peak egg production"
+                      sub="Best single day"
+                      value={peakEggDay == null ? '-' : peakEggDay.toLocaleString() + ' eggs'}
+                    />
+                  ) : (
+                    <InsightRow
+                      icon={WeightIcon}
+                      label="Weight gained per bird"
+                      sub={weightGain == null ? 'Needs two weigh-ins' : `Since ${formatDate(firstWeight.date)}`}
+                      value={weightGain == null ? '-' : `${weightGain >= 0 ? '+' : ''}${formatKg(weightGain)}`}
+                    />
+                  )}
                   <InsightRow icon={Percent} label="Feed conversion ratio" sub={fcrNote} value={fcrValue} />
                   <InsightRow
                     icon={FeedIcon}
@@ -893,8 +987,8 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'logs' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Daily Logs</h2>
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+              <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Daily Logs</h2>
               {dailyLogs.length === 0 ? (
                 <EmptyState icon={Activity} title="Nothing recorded for this batch yet." />
               ) : (
@@ -903,6 +997,7 @@ export function BatchDetailPage() {
                     <LogRow
                       key={index}
                       icon={item.icon}
+                      pending={item.pending}
                       primary={item.kind}
                       secondary={item.detail}
                       value={formatDate(item.date)}
@@ -914,13 +1009,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'feed' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Feed Record</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Feed Record</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('feed')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Log Feed
                 </button>
@@ -933,6 +1028,7 @@ export function BatchDetailPage() {
                     <LogRow
                       key={entry.entryId || index}
                       icon={FeedIcon}
+                      pending={entry.pending}
                       primary={[entry.feedType || 'Feed', entry.brand].filter(Boolean).join(' · ')}
                       secondary={formatDate(entry.date)}
                       value={formatBags(feedBags(entry))}
@@ -945,21 +1041,21 @@ export function BatchDetailPage() {
 
           {activeTab === 'vaccines' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                  <h2 className="text-base font-bold text-stone-950 font-heading">Vaccination Calendar</h2>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Vaccination Calendar</h2>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => openVaccination({ mode: 'record' })}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                     >
                       <CheckCircle2 size={14} strokeWidth={2.5} /> Record Given
                     </button>
                     <button
                       type="button"
                       onClick={() => openVaccination({ mode: 'schedule' })}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                     >
                       <Plus size={14} strokeWidth={2.5} /> Schedule
                     </button>
@@ -978,14 +1074,14 @@ export function BatchDetailPage() {
                       <button
                         type="button"
                         onClick={() => openVaccination({ mode: date > todayIso ? 'schedule' : 'record', date })}
-                        className="px-2.5 h-7 rounded-lg bg-[#0D5C3A] hover:bg-[#094229] text-white text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 h-7 rounded-lg bg-[#DFFF83] hover:bg-[#C5E95A] text-[#17191A] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                       >
                         <VaccineIcon size={12} /> Vaccine
                       </button>
                       <button
                         type="button"
                         onClick={() => setLogModal('multivitamin')}
-                        className="px-2.5 h-7 rounded-lg border border-stone-200 hover:border-[#0D5C3A]/40 text-stone-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 h-7 rounded-lg border border-stone-200 dark:border-[#2B3238] hover:border-[#D2EC7A] dark:hover:border-[#B7DA3E]/40 text-stone-700 dark:text-[#94A3B8] text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
                       >
                         <Plus size={12} /> Vitamin
                       </button>
@@ -994,8 +1090,8 @@ export function BatchDetailPage() {
                 />
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Due</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Due</h2>
                 {dueVaccines.length === 0 ? (
                   <EmptyState icon={VaccineIcon} title="No vaccinations due." description="Schedule the next one so you get a reminder." />
                 ) : (
@@ -1003,25 +1099,25 @@ export function BatchDetailPage() {
                     {dueVaccines.map((item) => {
                       const overdue = item.status === 'missed' || item.dueDate < todayIso;
                       return (
-                        <div key={item.scheduleId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 py-3.5 border-b border-stone-100 last:border-0">
+                        <div key={item.scheduleId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 py-3.5 border-b border-stone-100 dark:border-[#2B3238] last:border-0">
                           <div className="flex items-start sm:items-center gap-3 min-w-0">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${overdue ? 'bg-rose-50' : 'bg-[#EAF5EF]'}`}>
-                              <VaccineIcon size={16} strokeWidth={2.5} className={overdue ? 'text-rose-600' : 'text-[#0D5C3A]'} />
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${overdue ? 'bg-rose-50 dark:bg-rose-950/30' : 'bg-[#F7FFE0] dark:bg-[#252A2E]'}`}>
+                              <VaccineIcon size={16} strokeWidth={2.5} className={overdue ? 'text-rose-600 dark:text-rose-400' : 'text-[#4D6600] dark:text-[#DFFF83]'} />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-stone-900 break-words">
+                              <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] break-words">
                                 {item.vaccineName}{item.doseNumber ? ` · ${item.doseNumber}` : ''}
                               </div>
-                              <div className={`text-xs ${overdue ? 'text-rose-600 font-semibold' : 'text-stone-500'}`}>
+                              <div className={`text-xs ${overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-stone-500 dark:text-[#94A3B8]'}`}>
                                 {overdue ? 'Overdue since ' : 'Due '}{formatDate(item.dueDate)}
-                                {ROUTES[item.route] && <span className="text-stone-500 font-normal"> · {ROUTES[item.route].label}</span>}
+                                {ROUTES[item.route] && <span className="text-stone-500 dark:text-[#94A3B8] font-normal"> · {ROUTES[item.route].label}</span>}
                               </div>
                             </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => recordScheduled(item)}
-                            className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#0D5C3A]/30 text-[#0D5C3A] hover:bg-[#EAF5EF] transition-colors cursor-pointer shrink-0"
+                            className="w-full sm:w-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold border border-[#D2EC7A] dark:border-[#B7DA3E]/40 text-[#4D6600] dark:text-[#DFFF83] hover:bg-[#F7FFE0] dark:hover:bg-[#252A2E] transition-colors cursor-pointer shrink-0"
                           >
                             Record as given
                           </button>
@@ -1032,8 +1128,8 @@ export function BatchDetailPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Vaccination History</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Vaccination History</h2>
                 {vaccinationHistory.length === 0 ? (
                   <EmptyState icon={VaccineIcon} title="No vaccinations recorded for this batch yet." />
                 ) : (
@@ -1042,6 +1138,7 @@ export function BatchDetailPage() {
                       <LogRow
                         key={v.key}
                         icon={VaccineIcon}
+                        pending={v.pending}
                         primary={`${v.vaccineName}${v.doseNumber ? ` · ${v.doseNumber}` : ''}`}
                         secondary={[
                           ROUTES[v.route]?.label,
@@ -1059,13 +1156,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'multivitamins' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Vitamins &amp; Supplements</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Vitamins &amp; Supplements</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('multivitamin')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Record Vitamin
                 </button>
@@ -1107,13 +1204,13 @@ export function BatchDetailPage() {
           )}
 
           {activeTab === 'mortality' && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
               <div className="flex items-center justify-between gap-4 mb-2">
-                <h2 className="text-base font-bold text-stone-950 font-heading">Mortality</h2>
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Mortality</h2>
                 <button
                   type="button"
                   onClick={() => setLogModal('mortality')}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                 >
                   <Plus size={14} strokeWidth={2.5} /> Log Mortality
                 </button>
@@ -1126,6 +1223,7 @@ export function BatchDetailPage() {
                     <LogRow
                       key={entry.entryId || index}
                       icon={TrendingDown}
+                      pending={entry.pending}
                       primary={(Number(entry.count) || 0) + ' birds'}
                       secondary={entry.note || 'No cause recorded'}
                       value={formatDate(entry.date)}
@@ -1138,13 +1236,13 @@ export function BatchDetailPage() {
 
           {activeTab === 'weight' && (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-5">
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                  <h2 className="text-base font-bold text-stone-950 font-heading">Weight Summary</h2>
+                  <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">Weight Summary</h2>
                   <button
                     type="button"
                     onClick={() => setLogModal('weight')}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0D5C3A] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer"
                   >
                     <Plus size={14} strokeWidth={2.5} /> Log Weight
                   </button>
@@ -1177,8 +1275,8 @@ export function BatchDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <h2 className="text-base font-bold text-stone-950 font-heading mb-2">Weigh-ins</h2>
+              <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+                <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-2">Weigh-ins</h2>
                 {weightHistory.length === 0 ? (
                   <EmptyState
                     icon={WeightIcon}
@@ -1191,6 +1289,7 @@ export function BatchDetailPage() {
                       <LogRow
                         key={w.entryId || index}
                         icon={WeightIcon}
+                        pending={w.pending}
                         primary={`${formatKg(w.averageWeightKg)} average`}
                         secondary={[
                           w.change == null ? 'First weigh-in' : `${formatChange(w.change)} since previous`,
@@ -1209,8 +1308,8 @@ export function BatchDetailPage() {
         {/* Right column. Quick Actions sits at the top now that Recent
             Activity is gone, with the tab's own report below it. */}
         <div className="space-y-5">
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Quick Actions</h2>
+          <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+            <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
               <QuickAction icon={FeedIcon} label="Log Feed" onClick={() => setLogModal('feed')} />
               <QuickAction icon={PillIcon} label="Log Vitamin" onClick={() => setLogModal('multivitamin')} />
@@ -1229,24 +1328,24 @@ export function BatchDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
-            <h2 className="text-base font-bold text-stone-950 font-heading mb-4">Documents</h2>
+          <div className="bg-white dark:bg-[#1E2124] rounded-xl shadow-sm p-5 border border-transparent dark:border-[#2B3238]">
+            <h2 className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading mb-4">Documents</h2>
             <button
               type="button"
               onClick={handleDownload}
               className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
-                  <FileText size={18} strokeWidth={2.5} className="text-stone-600" />
+                <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-[#252A2E] flex items-center justify-center shrink-0">
+                  <FileText size={18} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-stone-900 truncate">{report.title}</div>
-                  <div className="text-xs text-stone-500 truncate">{report.subtitle}</div>
+                  <div className="text-sm font-semibold text-stone-900 dark:text-[#F5F7F5] truncate">{report.title}</div>
+                  <div className="text-xs text-stone-500 dark:text-[#94A3B8] truncate">{report.subtitle}</div>
                 </div>
               </div>
-              <span className="w-9 h-9 rounded-lg border border-stone-200 flex items-center justify-center shrink-0 group-hover:bg-stone-50 transition-colors">
-                <Download size={16} strokeWidth={2.5} className="text-stone-600" />
+              <span className="w-9 h-9 rounded-lg border border-stone-200 dark:border-[#2B3238] flex items-center justify-center shrink-0 group-hover:bg-stone-50 dark:group-hover:bg-[#252A2E] transition-colors">
+                <Download size={16} strokeWidth={2.5} className="text-stone-600 dark:text-[#94A3B8]" />
               </span>
             </button>
           </div>
@@ -1305,7 +1404,9 @@ export function BatchDetailPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setLogModal(null)} className="px-4 py-2 text-xs font-bold text-neutral-600">Cancel</button>
-            <button type="submit" className="px-5 py-2 bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">Save</button>
+            <button type="submit" disabled={savingLog} className="px-5 py-2 bg-[#DFFF83] hover:bg-[#C5E95A] active:bg-[#B3D944] text-[#17191A] rounded-xl text-xs font-bold cursor-pointer transition-colors inline-flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              {savingLog ? (<><Spinner size={14} /> Saving…</>) : 'Save'}
+            </button>
           </div>
         </form>
       </Modal>
@@ -1347,7 +1448,9 @@ export function BatchDetailPage() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setLogModal(null)} className="px-4 py-2 text-xs font-bold text-neutral-600">Cancel</button>
-              <button type="submit" className="px-5 py-2 bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">Save Eggs</button>
+              <button type="submit" disabled={savingLog} className="px-5 py-2 bg-[#DFFF83] hover:bg-[#C5E95A] active:bg-[#B3D944] text-[#17191A] rounded-xl text-xs font-bold cursor-pointer transition-colors inline-flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              {savingLog ? (<><Spinner size={14} /> Saving…</>) : 'Save Eggs'}
+            </button>
             </div>
           </form>
         </Modal>
@@ -1396,7 +1499,9 @@ export function BatchDetailPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setLogModal(null)} className="px-4 py-2 text-xs font-bold text-neutral-600">Cancel</button>
-            <button type="submit" className="px-5 py-2 bg-[#0D5C3A] hover:bg-[#094229] active:bg-[#063823] text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">Save Weight</button>
+            <button type="submit" disabled={savingLog} className="px-5 py-2 bg-[#DFFF83] hover:bg-[#C5E95A] active:bg-[#B3D944] text-[#17191A] rounded-xl text-xs font-bold cursor-pointer transition-colors inline-flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              {savingLog ? (<><Spinner size={14} /> Saving…</>) : 'Save Weight'}
+            </button>
           </div>
         </form>
       </Modal>

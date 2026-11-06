@@ -23,7 +23,9 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region              = var.aws_region
+  profile             = var.aws_profile
+  allowed_account_ids = [var.aws_account_id]
 
   default_tags {
     tags = {
@@ -38,8 +40,10 @@ provider "aws" {
 # regardless of which region the rest of this stack lives in (CloudFront
 # itself is a global service) — see acm.tf's aws_acm_certificate.frontend.
 provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+  alias               = "us_east_1"
+  region              = "us-east-1"
+  profile             = var.aws_profile
+  allowed_account_ids = [var.aws_account_id]
 
   default_tags {
     tags = {

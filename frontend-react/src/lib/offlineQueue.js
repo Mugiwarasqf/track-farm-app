@@ -3,13 +3,15 @@ import { syncBatch } from '../api/sync';
 /**
  * On-device queue for log entries written while offline.
  *
- * SCOPE, deliberately narrow: only the four append-only log resources below.
- * Those replay safely because POST /sync/batch does a conditional put on a
- * client-generated entryId, so re-sending a line is a no-op rather than a
- * duplicate. Batch creates/edits/closes and profile updates are NOT queued —
- * replaying a stale mutation (closing a batch that was since reopened, or
- * logging against a deleted batch) produces wrong state, and the sync endpoint
- * was never built for them. Those still require a live connection.
+ * SCOPE, deliberately narrow: only the create-shaped, append-only resources
+ * below (five logs plus scheduling a vaccination). Those replay safely
+ * because POST /sync/batch does a conditional put on a client-generated id,
+ * so re-sending a line is a no-op rather than a duplicate. Batch
+ * creates/edits/closes, profile updates, and marking a scheduled
+ * vaccination done are NOT queued — replaying a stale mutation (closing a
+ * batch that was since reopened, logging against a deleted batch) produces
+ * wrong state, and the sync endpoint was never built for them. Those still
+ * require a live connection.
  *
  * STORAGE: IndexedDB, not localStorage. The queue holds the farmer's only copy
  * of an entry until it lands, so it must not be evicted under storage pressure
@@ -30,7 +32,7 @@ const MAX_ATTEMPTS = 5;
 // against API Gateway, and so partial progress survives a mid-flush failure.
 const FLUSH_CHUNK_SIZE = 50;
 
-export const QUEUEABLE_RESOURCES = ['mortality', 'feed', 'eggs', 'vaccinations', 'weight'];
+export const QUEUEABLE_RESOURCES = ['mortality', 'feed', 'eggs', 'vaccinations', 'weight', 'vaccination-schedule'];
 
 /**
  * Confirmation shown when an entry went to the queue instead of the server.
@@ -256,6 +258,13 @@ async function runFlush() {
     await deleteEntries(deliveredIds);
     await saveEntries(retryRecords);
     notify();
+  }
+
+  // Entries just landed: tell pages showing logs to reload, so the server's
+  // copies replace the "waiting to send" ones. Same event name as
+  // LOGS_CHANGED_EVENT in api/logs.js (not imported: logs.js imports this file).
+  if (applied > 0 && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('farmbook:logs-changed', { detail: { resource: 'sync' } }));
   }
 
   return { applied, stopped, remaining: await getPendingCount() };

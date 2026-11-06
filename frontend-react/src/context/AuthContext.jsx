@@ -4,6 +4,7 @@ import { clearOfflineRecords } from '../lib/pwa';
 import { signup as apiSignup, login as apiLogin, requestPasswordReset, confirmPasswordReset } from '../api/auth';
 import { getFarm } from '../api/farms';
 import { setCustomBirdTypes } from '../lib/batch';
+import { syncPrefsFromFarm, writePrefs } from '../lib/notifications/prefs';
 
 const AuthContext = createContext(null);
 
@@ -44,6 +45,9 @@ export function AuthProvider({ children }) {
       }
       if (data.farmerName) {
         localStorage.setItem('farmbook_farmername', data.farmerName);
+      }
+      if (data.notificationPrefs) {
+        syncPrefsFromFarm(data.notificationPrefs);
       }
     } catch (e) {
       console.warn('Could not fetch farm profile from API (route may be pending deploy):', e);
@@ -90,6 +94,9 @@ export function AuthProvider({ children }) {
     if (updates.phone) {
       localStorage.setItem('farmbook_farmphone', updates.phone);
     }
+    if (updates.notificationPrefs) {
+      writePrefs(updates.notificationPrefs);
+    }
   }, []);
 
   // Deliberately NOT "farm?.name !== 'My Farm'" -- that used to be here as
@@ -105,6 +112,14 @@ export function AuthProvider({ children }) {
   );
 
   const applySession = useCallback(async (data) => {
+    // Records saved for offline use belong to whoever was signed in before;
+    // a new sign-in starts clean even if that person never logged out. Done
+    // only after the server accepted the sign-in, so a failed attempt
+    // (e.g. while offline) never wipes them.
+    await clearOfflineRecords();
+    // Ask the browser not to clear saved records when storage runs low.
+    // Best-effort: browsers may decline, and nothing depends on the answer.
+    navigator.storage?.persist?.().catch(() => {});
     setTokens({
       idToken: data.idToken,
       refreshToken: data.refreshToken,
