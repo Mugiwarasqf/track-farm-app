@@ -5,6 +5,14 @@ aws_region   = "eu-west-1"
 environment  = "beta"
 project_name = "poultry-farm-app"
 
+# Both required, no default — see providers.tf's allowed_account_ids.
+# Terraform hard-errors before touching anything if the credentials this
+# profile resolves to aren't actually this account, so a mixed-up
+# AWS_PROFILE or -var-file can't silently apply one environment's config
+# into the other's AWS account.
+aws_profile    = "default"
+aws_account_id = "000000000000"
+
 # Required, no default — the literal From address the app sends with.
 # Not an inbox anyone needs to check; authorized by the domain identity
 # below once that's verified, not by its own SES identity. See

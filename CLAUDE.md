@@ -5,9 +5,9 @@
 A record-keeping app for Nigerian poultry farmers: mortality, feed, egg
 production, and vaccination tracking, replacing the paper notebook most
 farmers currently use. Validation drove the original scope; there's now a
-real, working full-stack build (backend plus a friend-built React
-frontend) that's grown somewhat beyond that original scope, flagged below
-where that happened. The founder has direct personal connections in the
+real, working full-stack build (backend plus a React frontend built by
+Dolapo, the co-founder) that's grown somewhat beyond that original scope,
+flagged below where that happened. The founder has direct personal connections in the
 poultry industry (heavily Lagos/Ikorodu-based so far) that sourced the
 real survey responses and follow-up interviews the scope is built on.
 
@@ -43,7 +43,7 @@ in this Documents\Cloud directory.
   Deploy state varies since this has been applied, torn down, and
   reapplied multiple times during testing; check `terraform plan` before
   assuming current state. See "Infrastructure" below for module detail.
-- Frontend is real, in `frontend-react/`, built by a friend of the founder
+- Frontend is real, in `frontend-react/`, built by Dolapo, the co-founder
   (ownership settled 31/08/2026): a genuinely substantial React app
   (Vite), batches, logging, schedule, inventory, settings, offline queue.
   Its own API client code has repeatedly surfaced real backend gaps
@@ -207,6 +207,16 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
   GitHub's native required-reviewers environment protection needs a paid
   plan this repo doesn't have. Beta is never touched by either workflow;
   it's deployed by hand for pre-merge testing.
+- **Local `terraform apply` only ever targets beta, by policy** — prod's
+  `infra/` stack is deployed exclusively through `cd.yml`, never by hand,
+  so there's no path for a local machine to apply the wrong environment
+  into the wrong account. `infra/deploy-beta.sh` is the normal day-to-day
+  tool. `infra/deploy-prod.sh` exists only for the one-time initial prod
+  stand-up and genuine break-glass emergencies — reach for it rarely and
+  deliberately, not as a routine alternative to CI/CD. The one necessary
+  exception is `infra/bootstrap/` (the OIDC provider and IAM role CI/CD
+  itself assumes): it has to be applied locally against prod, since CI/CD
+  can't bootstrap the very credentials it depends on.
 - If the no-smartphone/USSD segment ever becomes real: AWS doesn't
   provide USSD directly, would need a Nigerian telco or aggregator (e.g.
   Africa's Talking) alongside AWS. Still unvalidated (0/27 respondents
@@ -239,7 +249,7 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
 | `infra/` | Terraform, modular (`infra/main.tf` plus `infra/modules/*`); `infra/bootstrap/` is the separate one-time-per-account OIDC/IAM setup |
 | `.github/workflows/` | CI (`ci.yml`, every PR) and CD (`cd.yml`, manually triggered after merge) |
 | `backend/` | TypeScript Lambda source, one handler per API resource |
-| `frontend-react/` | The real product frontend (Vite plus React), built by the founder's friend |
+| `frontend-react/` | The real product frontend (Vite plus React), built by Dolapo, the co-founder |
 | `README.md` | Shorter orientation doc, same information at a glance |
 | `docs/` | Folder holding all numbered research/planning files above |
 
