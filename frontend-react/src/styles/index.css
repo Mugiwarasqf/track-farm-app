@@ -1,3 +1,12 @@
+/* Self-hosted so text doesn't wait on a cross-origin round trip to Google
+   Fonts before it can render in its final weight -- only the weights
+   actually used in the app (see grep for font-* classes), no italics. */
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+@import "@fontsource/poppins/800.css";
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));

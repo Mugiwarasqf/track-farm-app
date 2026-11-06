@@ -177,12 +177,17 @@ export function AppShell() {
         <OfflineBanner />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-10 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
 
-        {/* Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[#17191A] border-t border-stone-200 dark:border-[#2B3238] px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around md:hidden shadow-lg transition-colors">
+        {/* Mobile Bottom Navigation Bar -- floats as its own rounded card above
+            the safe area rather than sitting flush with the screen edges, so
+            it reads as a distinct piece of chrome instead of a flat strip. */}
+        <nav
+          className="fixed left-3 right-3 z-30 bg-white/95 dark:bg-[#17191A]/95 backdrop-blur-md rounded-2xl border border-stone-200/80 dark:border-[#2B3238] px-2 py-2 flex items-center justify-around md:hidden shadow-[0_10px_30px_-6px_rgba(20,25,30,0.18)] dark:shadow-[0_10px_30px_-6px_rgba(0,0,0,0.5)] transition-colors"
+          style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
           {[
             { to: '/dashboard', icon: FarmIcon, label: 'Home' },
             { to: '/batches', icon: BatchIcon, label: 'Batches' },
@@ -195,18 +200,35 @@ export function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-1 text-xs font-semibold transition-colors ${
-                    isActive
-                      ? 'text-[#4D6600] dark:text-[#DFFF83] font-bold'
-                      : 'text-stone-500 dark:text-[#94A3B8] hover:text-stone-900 dark:hover:text-white'
-                  }`
-                }
+                className="flex flex-col items-center justify-center gap-0.5 py-1 min-w-13 text-[11px] font-semibold active:scale-95 transition-transform"
               >
                 {({ isActive }) => (
                   <>
-                    <Icon size={18} className={`mb-0.5 ${isActive ? '' : 'dark:invert dark:opacity-85'}`} />
-                    <span>{item.label}</span>
+                    <span
+                      className={`flex items-center justify-center w-11 h-7 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? 'bg-[#EFFFC4] dark:bg-[#142312] border border-[#E3F5A8] dark:border-[#274220]'
+                          : 'bg-transparent border border-transparent'
+                      }`}
+                    >
+                      <Icon
+                        size={18}
+                        className={
+                          isActive
+                            ? 'opacity-100'
+                            : 'opacity-55 dark:invert dark:opacity-85'
+                        }
+                      />
+                    </span>
+                    <span
+                      className={`transition-colors duration-200 ${
+                        isActive
+                          ? 'text-[#4D6600] dark:text-[#DFFF83] font-bold'
+                          : 'text-stone-500 dark:text-[#94A3B8]'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
                   </>
                 )}
               </NavLink>

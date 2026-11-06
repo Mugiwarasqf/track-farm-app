@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useBatches } from './context/BatchContext';
@@ -18,6 +19,17 @@ import { BatchHistoryDetailPage } from './pages/BatchHistoryDetailPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+
+// Router doesn't reset scroll on navigation by itself -- without this, opening
+// a batch from partway down the list page keeps the old scroll position, so
+// the detail page appears to open mid-page instead of at the top.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 export default function App() {
   const { isLoggedIn, isOnboarded, farm, farmLoading, loadFarm } = useAuth();
@@ -72,6 +84,7 @@ export default function App() {
       {/* No offline overlay: losing connectivity must not block the farmer
           from recording anything. Writes made while offline still need a
           client-side queue to survive — see the note in api/client.js. */}
+      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route
