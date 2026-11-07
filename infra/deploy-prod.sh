@@ -15,5 +15,5 @@ if [ "${1:-}" = "apply" ]; then
   [ "$confirm" = "y" ] || [ "$confirm" = "Y" ] || exit 1
 fi
 
-terraform init -backend-config=backend-configs/prod.hcl -reconfigure
+terraform init -backend-config=backend-configs/prod.hcl -backend-config="profile=poultry-prod" -reconfigure
 terraform "$@" -var-file=prod.tfvars

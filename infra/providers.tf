@@ -23,8 +23,13 @@ terraform {
 }
 
 provider "aws" {
-  region              = var.aws_region
-  profile             = var.aws_profile
+  region = var.aws_region
+  # Empty means "use the ambient credential chain" (CI's OIDC-assumed role
+  # env vars; no named profile exists there). allowed_account_ids below is
+  # the actual cross-account guardrail regardless of how credentials were
+  # resolved, so profile being unset doesn't reopen that risk -- it only
+  # ever selected which named profile to use locally.
+  profile             = var.aws_profile != "" ? var.aws_profile : null
   allowed_account_ids = [var.aws_account_id]
 
   default_tags {
@@ -42,7 +47,7 @@ provider "aws" {
 provider "aws" {
   alias               = "us_east_1"
   region              = "us-east-1"
-  profile             = var.aws_profile
+  profile             = var.aws_profile != "" ? var.aws_profile : null
   allowed_account_ids = [var.aws_account_id]
 
   default_tags {

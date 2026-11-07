@@ -10,8 +10,13 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
 
 data "aws_iam_policy_document" "github_actions_trust" {
   statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect = "Allow"
+    # TagSession is required alongside AssumeRoleWithWebIdentity: by default
+    # aws-actions/configure-aws-credentials@v4 attaches GitHub context (repo,
+    # actor, workflow...) as session tags on the call, and AWS rejects the
+    # whole AssumeRoleWithWebIdentity call -- not just the tagging -- if the
+    # trust policy doesn't also allow TagSession.
+    actions = ["sts:AssumeRoleWithWebIdentity", "sts:TagSession"]
 
     principals {
       type        = "Federated"
@@ -25,13 +30,21 @@ data "aws_iam_policy_document" "github_actions_trust" {
     }
 
     # pull_request covers CI's plan step on every PR; ref:refs/heads/main
-    # covers CD's apply step after merge.
+    # covers CD's apply step after merge. GitHub's sub claim now embeds
+    # immutable owner/repo IDs (repo:owner@<id>/name@<id>:...) instead of
+    # the plain owner/name text alone -- confirmed via CloudTrail after this
+    # repo's rename, where the plain-text pattern below matched nothing and
+    # every AssumeRoleWithWebIdentity call was denied. Both forms are kept:
+    # the ID-suffixed one is what GitHub actually sends today, the plain one
+    # is harmless to keep in case that ever changes back.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
         "repo:${var.github_repo}:pull_request",
         "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:pull_request",
+        "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:ref:refs/heads/main",
       ]
     }
   }

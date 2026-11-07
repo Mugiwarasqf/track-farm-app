@@ -4,5 +4,5 @@
 # terraform.tfvars -- no flags to remember or forget.
 set -euo pipefail
 cd "$(dirname "$0")"
-terraform init -backend-config=backend-configs/beta.hcl -reconfigure
+terraform init -backend-config=backend-configs/beta.hcl -backend-config="profile=default" -reconfigure
 terraform "$@"
