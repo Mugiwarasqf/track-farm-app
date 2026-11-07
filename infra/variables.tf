@@ -23,8 +23,9 @@ variable "project_name" {
 # credentials don't match -- the actual guardrail against applying one
 # environment's config into the other's AWS account.
 variable "aws_profile" {
-  description = "Named AWS CLI profile this environment's provider authenticates as."
+  description = "Named AWS CLI profile this environment's provider authenticates as. Empty means use the ambient credential chain (e.g. CI's OIDC-assumed role) -- see providers.tf."
   type        = string
+  default     = ""
 }
 
 variable "aws_account_id" {
