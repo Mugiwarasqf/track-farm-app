@@ -84,10 +84,10 @@ jobs:
       # variables; the one actually-personal value is a repo secret.
       - run: |
           terraform plan \
-            -var="aws_account_id=${{ vars.AWS_ACCOUNT_ID }}" \
-            -var="environment=prod" \
-            -var="project_name=${{ vars.PROJECT_NAME }}" \
-            -var="domain_name=${{ vars.DOMAIN_NAME }}" \
-            -var="ses_sender_email=${{ vars.SES_SENDER_EMAIL }}" \
-            -var="ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}"
+            -var='aws_account_id=${{ vars.AWS_ACCOUNT_ID }}' \
+            -var='environment=prod' \
+            -var='project_name=${{ vars.PROJECT_NAME }}' \
+            -var='domain_name=${{ vars.DOMAIN_NAME }}' \
+            -var='ses_sender_email=${{ vars.SES_SENDER_EMAIL }}' \
+            -var='ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}'
         working-directory: infra
