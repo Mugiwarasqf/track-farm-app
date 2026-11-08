@@ -1,13 +1,14 @@
-export function PenIcon({ size = 16, strokeWidth, className = '', style, ...props }) {
+import { Birdhouse } from 'lucide-react';
+
+// Lucide's birdhouse, drawn in currentColor, so each caller's light and dark
+// text colour classes (e.g. "text-stone-400 dark:text-[#64748B]") apply.
+export function PenIcon({ size = 16, strokeWidth = 2, className = '', ...props }) {
   return (
-    <img
-      src="/icon/chicken-coop.png"
-      alt=""
-      aria-hidden="true"
-      width={size}
-      height={size}
+    <Birdhouse
+      size={size}
+      strokeWidth={strokeWidth}
       className={className}
-      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, ...style }}
+      aria-hidden="true"
       {...props}
     />
   );

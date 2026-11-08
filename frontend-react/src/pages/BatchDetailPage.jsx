@@ -755,7 +755,7 @@ export function BatchDetailPage() {
                     {Number(batch.birdCount || 0).toLocaleString()} birds
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <PenIcon size={13} />
+                    <PenIcon size={13} className="text-stone-500 dark:text-[#64748B] shrink-0" />
                     {batchPen?.name || batch.housing || 'No pen recorded'}
                   </span>
                 </div>

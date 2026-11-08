@@ -22,6 +22,8 @@ export function clearTokens() {
   localStorage.removeItem('farmbook_refreshtoken');
   localStorage.removeItem('farmbook_farmid');
   localStorage.removeItem('farmbook_batchid');
+  // A different account in this browser must never see this farm's records.
+  clearReadCache();
 }
 
 // Separate from clearTokens(): these are the offline-fallback copies of
@@ -137,7 +139,56 @@ async function refreshIdToken() {
   }
 }
 
-// Core API call — same logic as app.js api()
+// ---- short-lived read cache --------------------------------------------------
+//
+// Every page fetches its own records when it opens and forgets them when it
+// closes, so without this, flipping between pages blanked each one and
+// re-fetched everything. A GET answered in the last READ_TTL_MS is returned
+// from memory instead, and identical GETs already in flight share one
+// request. Any successful write empties the cache, so whatever the farmer
+// just saved shows up on the next read. Records added from another device can
+// take up to READ_TTL_MS to appear; a full page reload always starts fresh.
+
+export const READ_TTL_MS = 60 * 1000;
+const readCache = new Map(); // url -> { data, at }
+const inFlight = new Map(); // url -> Promise of parsed data
+// Bumped on every clear. A read only fills the cache if no clear happened
+// while it was in flight, so a read that raced a save can't put old data back.
+let cacheGeneration = 0;
+
+/** Forget every cached read, e.g. after a write or for a manual refresh. */
+export function clearReadCache() {
+  readCache.clear();
+  inFlight.clear();
+  cacheGeneration += 1;
+}
+
+// Callers get their own copy, so a page changing what it received can't
+// alter what the next page is given.
+function copyOf(data) {
+  return typeof structuredClone === 'function' ? structuredClone(data) : JSON.parse(JSON.stringify(data));
+}
+
+// Core API call. GETs go through the read cache above; everything else, and
+// the 401 retry, goes straight to request().
+export function api(method, path, body, _isRetry = false) {
+  if (method !== 'GET' || _isRetry) return request(method, path, body, _isRetry);
+
+  const url = config.apiBase + path;
+  const hit = readCache.get(url);
+  if (hit && Date.now() - hit.at < READ_TTL_MS) return Promise.resolve(copyOf(hit.data));
+
+  let pending = inFlight.get(url);
+  if (!pending) {
+    pending = request('GET', path, undefined, false, cacheGeneration).finally(() => {
+      if (inFlight.get(url) === pending) inFlight.delete(url);
+    });
+    inFlight.set(url, pending);
+  }
+  return pending.then(copyOf);
+}
+
+// The network request itself — same logic as app.js api()
 //
 // OFFLINE BEHAVIOUR: this is a plain fetch with no queue. Offline, fetch
 // rejects outright and the write is lost — the caller just surfaces an error
@@ -151,7 +202,7 @@ async function refreshIdToken() {
 // persisting failed writes locally and flushing them to that endpoint on
 // reconnect. src/pages/SyncPage.jsx is only a manual paste-the-payload tool
 // and isn't routed.
-export async function api(method, path, body, _isRetry = false) {
+async function request(method, path, body, _isRetry = false, generation) {
   const { idToken } = getTokens();
   const headers = { 'content-type': 'application/json' };
   if (idToken) headers.authorization = `Bearer ${idToken}`;
@@ -187,7 +238,7 @@ export async function api(method, path, body, _isRetry = false) {
 
   if (res.status === 401 && !_isRetry) {
     const refreshed = await refreshIdToken();
-    if (refreshed) return api(method, path, body, true);
+    if (refreshed) return request(method, path, body, true, generation);
     clearTokens();
     window.location.reload();
     throw new Error('session expired');
@@ -203,7 +254,16 @@ export async function api(method, path, body, _isRetry = false) {
     err.data = data;
     throw err;
   }
-  if (method === 'GET') saveRead(url, text);
+  if (method === 'GET') {
+    saveRead(url, text);
+    // Skip copies the service worker served while offline (they carry a
+    // cached-at stamp), so the next read online fetches fresh.
+    if (generation === cacheGeneration && !res.headers.get(CACHED_AT_HEADER)) {
+      readCache.set(url, { data, at: Date.now() });
+    }
+  } else {
+    clearReadCache();
+  }
   return data;
 }
 
@@ -244,5 +304,7 @@ export async function apiRaw(method, path, rawBody, _isRetry = false) {
     err.data = data;
     throw err;
   }
+  // The offline queue just wrote records, so cached reads are out of date.
+  clearReadCache();
   return data;
 }

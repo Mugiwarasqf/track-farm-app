@@ -40,7 +40,7 @@ const LINK_COLUMNS = [
   {
     title: "Links",
     links: [
-      { label: "About TrackFarm", href: "#" },
+      { label: "About TrackFarm", href: "#about" },
       { label: "Support & Contact", href: "mailto:hello@trackfarm.cc" },
       { label: "Log in", href: "/login" },
       { label: "Get started free", href: "/signup" },

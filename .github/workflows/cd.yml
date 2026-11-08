@@ -6,7 +6,12 @@ name: CD
 # here). Run from the Actions tab once main has what you want deployed.
 # Deploys to prod only; beta is never touched by this pipeline.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      deploy_custom_domain:
+        description: "Claim trackfarm.cc's DNS for prod (only true during the deliberate cutover -- see infra/variables.tf's deploy_custom_domain)"
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -55,5 +60,6 @@ jobs:
             -var='project_name=${{ vars.PROJECT_NAME }}' \
             -var='domain_name=${{ vars.DOMAIN_NAME }}' \
             -var='ses_sender_email=${{ vars.SES_SENDER_EMAIL }}' \
-            -var='ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}'
+            -var='ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}' \
+            -var='deploy_custom_domain=${{ inputs.deploy_custom_domain }}'
         working-directory: infra

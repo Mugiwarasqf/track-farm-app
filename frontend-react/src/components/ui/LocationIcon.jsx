@@ -1,13 +1,14 @@
-export function LocationIcon({ size = 16, strokeWidth, className = '', style, ...props }) {
+import { MapPin } from 'lucide-react';
+
+// Lucide's map pin, drawn in currentColor, so each caller's light and dark
+// text colour classes (e.g. "text-stone-500 dark:text-[#94A3B8]") apply.
+export function LocationIcon({ size = 16, strokeWidth = 2, className = '', ...props }) {
   return (
-    <img
-      src="/icon/icons8-location-50.png"
-      alt=""
-      aria-hidden="true"
-      width={size}
-      height={size}
+    <MapPin
+      size={size}
+      strokeWidth={strokeWidth}
       className={className}
-      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, ...style }}
+      aria-hidden="true"
       {...props}
     />
   );
