@@ -136,29 +136,29 @@ function BatchCard({ batch, metric }) {
             <div>
               <span className={typePillClass(type)}>{birdTypeLabel(type)}</span>
             </div>
+          </div>
+        </div>
 
-            <div className="space-y-1.5 text-xs text-stone-600 dark:text-[#94A3B8]">
-              <div className="flex items-center gap-2">
-                <BirdIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
-                <span>{Number(batch.birdCount || 0).toLocaleString()} birds</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
-                <span>
-                  Age: <strong className="font-semibold text-stone-800 dark:text-[#F5F7F5]">{batchAge(batch)}</strong>
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CalendarIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
-                <span className="truncate">
-                  {formatDate(batch.startDate)} – {batch.closedAt ? formatDate(batch.closedAt) : 'Ongoing'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <LocationIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
-                <span className="truncate">{batch.housing || 'No house recorded'}</span>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-stone-600 dark:text-[#94A3B8]">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <BirdIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
+            <span>{Number(batch.birdCount || 0).toLocaleString()} birds</span>
+          </div>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Clock size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
+            <span>
+              Age: <strong className="font-semibold text-stone-800 dark:text-[#F5F7F5]">{batchAge(batch)}</strong>
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <CalendarIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
+            <span className="truncate">
+              {formatDate(batch.startDate)} – {batch.closedAt ? formatDate(batch.closedAt) : 'Ongoing'}
+            </span>
+          </div>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <LocationIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
+            <span className="truncate">{batch.housing || 'No house recorded'}</span>
           </div>
         </div>
 

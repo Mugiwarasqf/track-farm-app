@@ -1,104 +1,84 @@
-import { ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-
-const STEPS = [
+const FEATURES = [
   {
-    tag: "Step 01",
-    title: "Create & Organize Batches",
+    title: "Vaccination Reminders",
     description:
-      "Set up your flock in seconds. Track bird type, breed, arrival date, initial flock size, and pen assignments all in one place.",
-    cta: "Explore Batch Setup",
-    href: "/signup",
-    image: "/supportImage/dextar-studio-l-924IyJ0_g-unsplash.jpg",
-    alt: "Young healthy chicks inside a clean poultry pen",
-  },
-  {
-    tag: "Step 02",
-    title: "Log Daily Farm Records",
-    description:
-      "Quickly record feed consumption, daily mortality, and egg production straight from your phone while walking through the pens.",
-    cta: "See Daily Logging",
-    href: "/signup",
-    image: "/supportImage/erol-ahmed-leOh1CzRZVQ-unsplash.jpg",
-    alt: "Freshly collected farm eggs in an egg crate",
-  },
-  {
-    tag: "Step 03",
-    title: "Automate Health & Schedules",
-    description:
-      "Stay ahead with timely reminders for vaccinations, medications, and supplements to protect your birds and keep mortality low.",
-    cta: "View Vaccination Alerts",
-    href: "/signup",
+      "Get reminded before a vaccination is due, and keep a record of every dose so you never have to guess when the last one happened.",
     image: "/supportImage/athieno-joy-IVUOhqjII2o-unsplash.jpg",
     alt: "Poultry birds in a farm yard receiving care",
   },
   {
-    tag: "Step 04",
-    title: "Monitor Performance & Profit",
+    title: "Batch Management",
     description:
-      "Automatic calculations for Feed Conversion Ratio (FCR), laying percentages, and flock trends so you make profitable decisions.",
-    cta: "Check Farm Insights",
-    href: "/signup",
+      "Set up your flock in seconds. Keep bird type, breed, arrival date, flock size, and pen for every batch in one place.",
+    image: "/supportImage/dextar-studio-l-924IyJ0_g-unsplash.jpg",
+    alt: "Young healthy chicks inside a clean poultry pen",
+  },
+  {
+    title: "Daily Farm Records",
+    description:
+      "Record feed, mortality, and egg collection straight from your phone while you walk through the pens.",
+    image: "/supportImage/erol-ahmed-leOh1CzRZVQ-unsplash.jpg",
+    alt: "Freshly collected farm eggs in an egg crate",
+  },
+  {
+    title: "Bird Weight Tracking",
+    description:
+      "Weigh a few birds from time to time and see how each batch is growing, without working it out in a notebook.",
+    image: "/supportImage/vidar-nordli-mathisen-dC-z4r8tr6U-unsplash.jpg",
+    alt: "A full-grown rooster standing on a paved farm yard",
+  },
+  {
+    title: "Feed Conversion",
+    description:
+      "See how much feed it takes to grow each kilo of bird. TrackFarm works out your Feed Conversion Ratio from the records you enter.",
     image: "/supportImage/zoe-richardson-XOGg38VufZs-unsplash.jpg",
     alt: "Vibrant healthy chickens feeding on an organized farm",
+  },
+  {
+    title: "Batch Profit Tracking",
+    description:
+      "Record your costs and sales for each batch, and see how much profit it made when the batch is complete.",
+    image: "/supportImage/creab-thepolymath-rY56zxvWnKs-unsplash.jpg",
+    alt: "A hand picking a brown egg from stacked egg trays",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-16 bg-[#f5f8f5] py-12 sm:py-22">
+    <section id="features" className="scroll-mt-16 bg-[#f5f8f5] py-12 sm:py-22">
       <div className="mx-auto max-w-6xl px-6">
         {/* Section Header */}
         <div className="mx-auto max-w-4xl text-center">
-          
           <h2 className="mt-4 font-heading text-3xl font-bold tracking-tight text-[#174b35] sm:text-4xl lg:text-[42px] lg:leading-[1.18]">
             Simple Farm Management for Modern Poultry Keepers
           </h2>
           <p className="mt-3.5 text-sm leading-relaxed text-stone-600 sm:text-base">
-            From arrival day to market sale, TrackFarm streamlines every phase of your poultry operations in four simple steps.
+            From arrival day to market sale, TrackFarm keeps every part of your poultry farm in one place.
           </p>
         </div>
 
-        {/* 2x2 Grid matching reference design */}
-        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
-          {STEPS.map((step) => (
+        {/* Six tiles: one per row below lg, three per row on large screens */}
+        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-5">
+          {FEATURES.map((feature) => (
             <div
-              key={step.tag}
+              key={feature.title}
               className="group flex flex-col-reverse overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:border-[#174b35]/30 hover:shadow-md sm:flex-row sm:items-stretch"
             >
               {/* Text Content (Left side on desktop/tablet) */}
-              <div className="flex flex-1 flex-col justify-between p-3 sm:p-6">
-                <div>
-                  <span className="inline-block rounded-full bg-[#f0f4f1] px-3 py-1 text-[11px] font-semibold tracking-wider text-[#285e43]">
-                    {step.tag}
-                  </span>
-                  <h3 className="mt-3 font-heading text-lg font-bold text-[#174b35] sm:text-xl">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-relaxed text-stone-600 sm:text-[13px]">
-                    {step.description}
-                  </p>
-                </div>
-
-                <div className="mt-3 pt-2">
-                  <Link
-                    to={step.href}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#174b35] transition-colors group-hover:text-[#285e43]"
-                  >
-                    <span>{step.cta}</span>
-                    <ArrowRight
-                      size={14}
-                      className="transition-transform duration-200 group-hover:translate-x-1"
-                    />
-                  </Link>
-                </div>
+              <div className="flex flex-1 flex-col p-3 sm:p-6 lg:p-4">
+                <h3 className="font-heading text-lg font-bold text-[#174b35] sm:text-xl lg:text-base">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-stone-600 sm:text-[13px] lg:text-xs">
+                  {feature.description}
+                </p>
               </div>
 
               {/* Image (Right side on desktop/tablet) */}
-              <div className="relative h-38 w-full overflow-hidden  sm:h-auto sm:w-[46%] sm:min-w-[190px]">
+              <div className="relative h-38 w-full overflow-hidden sm:h-auto sm:w-[46%] sm:min-w-[190px] lg:w-[40%] lg:min-w-0">
                 <img
-                  src={step.image}
-                  alt={step.alt}
+                  src={feature.image}
+                  alt={feature.alt}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
@@ -112,4 +92,3 @@ export function HowItWorks() {
 }
 
 export default HowItWorks;
-

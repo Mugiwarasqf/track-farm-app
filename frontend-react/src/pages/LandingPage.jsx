@@ -22,8 +22,8 @@ import { HowItWorks } from "./homepage/HowItWorks";
 const dashboardPreview = "/supportImage/zoe-richardson-frDyQOsjQZI-unsplash.jpg";
 const dashboardPreview2 = "/supportImage/muhammed-minhaj-vp-8YZOdT7CsGk-unsplash.jpg";
 const NAV_LINKS = [
+  { label: "About", href: "#about" },
   { label: "Features", href: "#features" },
-  { label: "How it works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
 ];
 
@@ -142,13 +142,12 @@ function Navbar() {
 
 function Hero() {
   return (
-    <section className="relative isolate overflow-hidden">
+    <section className="relative isolate overflow-hidden min-[1700px]:min-h-[42vw]">
       <div
-        className="absolute inset-0 -z-10 bg-neutral-100"
+        className="absolute inset-0 -z-10 bg-neutral-100 bg-center min-[1700px]:bg-bottom"
         style={{
           backgroundImage: "url('/images/Gemini_Generated_Image_6mz3jr6mz3jr6mz3.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "center",
         }}
       />
       {/* Soft fade so the white nav/content stay readable over any photo */}
@@ -166,7 +165,7 @@ function Hero() {
 
         <p className="hero-subhead mt-10 max-w-[520px] text-[16px] leading-relaxed text-gray-600 md:text-[17px]">
           TrackFarm helps Nigerian poultry farmers replace paper records with
-          simple digital tracking â€” feed, mortality, eggs, vaccinations, and
+          simple digital tracking feed, mortality, eggs, vaccinations, and
           profit, all in one place.
         </p>
 
@@ -226,7 +225,7 @@ function FeatureItem({ icon: Icon, title, text }) {
 function DashboardFeatureSection() {
   return (
     <section
-      id="features"
+      id="about"
       className="relative overflow-hidden border-t border-stone-200/70 bg-[#f5f8f5] py-20 sm:py-24 lg:py-28"
     >
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 lg:grid-cols-2 lg:gap-16">
