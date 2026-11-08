@@ -30,21 +30,30 @@ data "aws_iam_policy_document" "github_actions_trust" {
     }
 
     # pull_request covers CI's plan step on every PR; ref:refs/heads/main
-    # covers CD's apply step after merge. GitHub's sub claim now embeds
-    # immutable owner/repo IDs (repo:owner@<id>/name@<id>:...) instead of
-    # the plain owner/name text alone -- confirmed via CloudTrail after this
-    # repo's rename, where the plain-text pattern below matched nothing and
-    # every AssumeRoleWithWebIdentity call was denied. Both forms are kept:
-    # the ID-suffixed one is what GitHub actually sends today, the plain one
-    # is harmless to keep in case that ever changes back.
+    # covers a job with no `environment:` set running off main;
+    # environment:production covers cd.yml's deploy job specifically --
+    # GitHub uses a different sub-claim shape entirely (repo:owner/name:
+    # environment:NAME) for any job that sets `environment:`, regardless
+    # of which event triggered it or which branch it ran from. Confirmed
+    # via CloudTrail when cd.yml's first real run was denied despite the
+    # ref-based pattern already being correct -- ref:refs/heads/main and
+    # environment:production are NOT interchangeable, a job needs the
+    # pattern matching its own actual shape. GitHub's sub claim also now
+    # embeds immutable owner/repo IDs (repo:owner@<id>/name@<id>:...)
+    # instead of the plain owner/name text alone -- confirmed via
+    # CloudTrail separately, after this repo's rename. Both ID forms are
+    # kept for every suffix: the ID-suffixed one is what GitHub actually
+    # sends today, the plain one is harmless to keep in case that changes.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
         "repo:${var.github_repo}:pull_request",
         "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_repo}:environment:production",
         "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:pull_request",
         "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:ref:refs/heads/main",
+        "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:environment:production",
       ]
     }
   }
