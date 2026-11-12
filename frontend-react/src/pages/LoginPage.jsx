@@ -37,7 +37,7 @@ export function LoginPage({ onBack }) {
         <div className="flex items-center justify-between w-full">
           <Link to="/" className="inline-block focus:outline-hidden">
             <img
-              src="/images/track-farm-logo-horizontal.jpg"
+              src="/images/track-farm-logo-horizontal.webp"
               alt="Track Farm"
               width={470}
               height={96}

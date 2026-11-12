@@ -12,6 +12,7 @@ export function SignupPage({ onBack }) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [dismissedSuggestion, setDismissedSuggestion] = useState('');
@@ -27,6 +28,8 @@ export function SignupPage({ onBack }) {
   }, [email, dismissedSuggestion]);
 
   const pwError = password ? passwordError(password) : null;
+  // Only flag a mismatch once they've typed something in the confirm box.
+  const confirmError = confirmPassword && confirmPassword !== password ? "Passwords don't match" : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +38,8 @@ export function SignupPage({ onBack }) {
     }
     const pErr = passwordError(password);
     if (pErr) return setAuthError(pErr);
+    if (!confirmPassword) return setAuthError('Confirm your password');
+    if (confirmPassword !== password) return setAuthError("Passwords don't match");
     if (!agreeTerms) {
       return setAuthError('Please agree to the Terms & Conditions to continue');
     }
@@ -251,6 +256,47 @@ export function SignupPage({ onBack }) {
                 <p className={`text-[11px] ${pwError ? 'text-amber-700' : 'text-neutral-400'}`}>
                   {pwError || 'At least 8 characters, with a letter and a number'}
                 </p>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-neutral-700 block" htmlFor="signup-confirm-password">
+                  Confirm password
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center justify-center">
+                    <Lock size={17} />
+                  </div>
+                  <input
+                    id="signup-confirm-password"
+                    className={`w-full pl-10 pr-11 py-3 bg-white border rounded-xl text-neutral-900 text-sm focus:outline-hidden focus:ring-1 transition-all placeholder:text-neutral-400 ${
+                      confirmError
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-neutral-200 focus:border-[#174b35] focus:ring-[#174b35]'
+                    }`}
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password again"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={authLoading}
+                    autoComplete="new-password"
+                    aria-invalid={confirmError ? true : undefined}
+                    aria-describedby={confirmError ? "signup-confirm-password-hint" : undefined}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3.5 text-neutral-400 hover:text-neutral-600 transition-colors p-1 cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {confirmError && (
+                  <p id="signup-confirm-password-hint" className="text-[11px] text-red-600" role="alert">
+                    {confirmError}
+                  </p>
+                )}
               </div>
 
               {/* Terms & Conditions Checkbox */}

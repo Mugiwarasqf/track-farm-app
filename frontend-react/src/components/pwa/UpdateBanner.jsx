@@ -20,7 +20,7 @@ export function UpdateBanner() {
       className="fixed left-3 right-3 md:left-auto md:right-6 md:w-96 z-40 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6
         bg-stone-900 text-white rounded-xl shadow-lg px-4 py-3 flex items-center gap-3"
     >
-      <span className="text-sm flex-1 min-w-0">A new version of FarmBook is ready.</span>
+      <span className="text-sm flex-1 min-w-0">A new version of TrackFarm is ready.</span>
       <button
         type="button"
         onClick={applyUpdate}

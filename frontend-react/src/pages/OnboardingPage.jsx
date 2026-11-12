@@ -21,20 +21,20 @@ const BACK_BTN = 'px-5 py-3.5 text-neutral-600 hover:text-neutral-950 text-xs fo
 
 const ONBOARDING_IMAGES = [
   {
-    src: '/onboarding/public-domain-vectors-uiNO69dv9hA-unsplash.jpg',
-    fallbackSrc: '/onboarding/m-umar-farooq-m5kyRt_MHCM-unsplash.jpg',
+    src: '/onboarding/public-domain-vectors-uiNO69dv9hA-unsplash.webp',
+    fallbackSrc: '/onboarding/m-umar-farooq-m5kyRt_MHCM-unsplash.webp',
     title: 'Modern Poultry Record Keeping',
     tagline: 'Replace paper notebooks with effortless digital tracking.',
   },
   {
-    src: '/onboarding/m-umar-farooq-m5kyRt_MHCM-unsplash.jpg',
-    fallbackSrc: '/onboarding/public-domain-vectors-uiNO69dv9hA-unsplash.jpg',
+    src: '/onboarding/m-umar-farooq-m5kyRt_MHCM-unsplash.webp',
+    fallbackSrc: '/onboarding/public-domain-vectors-uiNO69dv9hA-unsplash.webp',
     title: 'Flock & Breed Management',
     tagline: 'Broilers, layers, noilers or turkeys — tailored logging for each.',
   },
   {
-    src: '/onboarding/sila-bayraktar-DhSvkfxGPRM-unsplash.jpg',
-    fallbackSrc: '/onboarding/hanin-abouzeid-eUeri0TZRuQ-unsplash.jpg',
+    src: '/onboarding/sila-bayraktar-DhSvkfxGPRM-unsplash.webp',
+    fallbackSrc: '/onboarding/hanin-abouzeid-eUeri0TZRuQ-unsplash.webp',
     title: 'Nigerian Farm Locations',
     tagline: 'Built specifically for poultry farmers across Nigeria.',
   },
@@ -263,7 +263,7 @@ export function OnboardingPage({ onComplete }) {
                       🍗
                     </span>
                     <span className="w-14 h-14 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-center">
-                      <img src="/icon/chicken-icon.png" alt="" className="w-9 h-9 object-contain" />
+                      <img src="/icon/chicken-icon.webp" alt="" className="w-9 h-9 object-contain" />
                     </span>
                   </div>
                   <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-950 leading-tight">

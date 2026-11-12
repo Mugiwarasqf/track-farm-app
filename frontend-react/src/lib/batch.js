@@ -113,13 +113,13 @@ export const TYPE_FILTER_OPTIONS = typeFilterOptions();
 // Real bird images from public/birds/. Types without their own photo (custom
 // farm bird types) fall back to `default`.
 export const BATCH_IMAGES = {
-  layer: '/birds/jaclou-dl-hens-3420126_1920.jpg',
+  layer: '/birds/jaclou-dl-hens-3420126_1920.webp',
   broiler: '/birds/browlers.jpg',
   cockerel: '/birds/cockreal.jpg',
   noiler: '/birds/noiler.jpg',
   turkey: '/birds/TURKEY.jpg',
   duck: '/birds/duck.jpg',
-  guinea_fowl: '/birds/guinea%20fowl.jpg',
+  guinea_fowl: '/birds/guinea-fowl.webp',
   quail: '/birds/quail.jpg',
   chick: '/birds/others.jpg',
   default: '/birds/layers.jpg',
