@@ -3,42 +3,42 @@ const FEATURES = [
     title: "Vaccination Reminders",
     description:
       "Get reminded before a vaccination is due, and keep a record of every dose so you never have to guess when the last one happened.",
-    image: "/supportImage/athieno-joy-IVUOhqjII2o-unsplash.jpg",
+    image: "/supportImage/athieno-joy-IVUOhqjII2o-unsplash.webp",
     alt: "Poultry birds in a farm yard receiving care",
   },
   {
     title: "Batch Management",
     description:
       "Set up your flock in seconds. Keep bird type, breed, arrival date, flock size, and pen for every batch in one place.",
-    image: "/supportImage/dextar-studio-l-924IyJ0_g-unsplash.jpg",
+    image: "/supportImage/dextar-studio-l-924IyJ0_g-unsplash.webp",
     alt: "Young healthy chicks inside a clean poultry pen",
   },
   {
     title: "Daily Farm Records",
     description:
       "Record feed, mortality, and egg collection straight from your phone while you walk through the pens.",
-    image: "/supportImage/erol-ahmed-leOh1CzRZVQ-unsplash.jpg",
+    image: "/supportImage/erol-ahmed-leOh1CzRZVQ-unsplash.webp",
     alt: "Freshly collected farm eggs in an egg crate",
   },
   {
     title: "Bird Weight Tracking",
     description:
       "Weigh a few birds from time to time and see how each batch is growing, without working it out in a notebook.",
-    image: "/supportImage/vidar-nordli-mathisen-dC-z4r8tr6U-unsplash.jpg",
+    image: "/supportImage/vidar-nordli-mathisen-dC-z4r8tr6U-unsplash.webp",
     alt: "A full-grown rooster standing on a paved farm yard",
   },
   {
     title: "Feed Conversion",
     description:
       "See how much feed it takes to grow each kilo of bird. TrackFarm works out your Feed Conversion Ratio from the records you enter.",
-    image: "/supportImage/zoe-richardson-XOGg38VufZs-unsplash.jpg",
+    image: "/supportImage/zoe-richardson-XOGg38VufZs-unsplash.webp",
     alt: "Vibrant healthy chickens feeding on an organized farm",
   },
   {
     title: "Batch Profit Tracking",
     description:
       "Record your costs and sales for each batch, and see how much profit it made when the batch is complete.",
-    image: "/supportImage/creab-thepolymath-rY56zxvWnKs-unsplash.jpg",
+    image: "/supportImage/creab-thepolymath-rY56zxvWnKs-unsplash.webp",
     alt: "A hand picking a brown egg from stacked egg trays",
   },
 ];

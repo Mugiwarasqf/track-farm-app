@@ -15,7 +15,7 @@ function useInstallState() {
 function IosSteps() {
   return (
     <span>
-      In Safari, tap <Share size={13} className="inline -mt-0.5" aria-label="Share" /> Share, then{' '}
+      Tap <Share size={13} className="inline -mt-0.5" aria-label="Share" /> Share, then{' '}
       <span className="font-semibold">Add to Home Screen</span>.
     </span>
   );
@@ -29,11 +29,13 @@ export function InstallRow() {
       <div className="min-w-0">
         <div className="text-sm font-semibold text-stone-900">App on your phone</div>
         <div className="text-xs text-stone-500 mt-0.5">
-          {state === 'installed' && 'FarmBook is installed on this device.'}
-          {state === 'prompt' && 'Add FarmBook to your home screen.'}
+          {state === 'installed' && 'TrackFarm is on this phone’s home screen.'}
+          {state === 'prompt' && 'Add TrackFarm to your home screen.'}
           {state === 'ios' && <IosSteps />}
+          {state === 'inapp' &&
+            'Open this page in Chrome or Safari to add TrackFarm to your home screen.'}
           {state === 'unavailable' &&
-            'Open FarmBook in Chrome on Android, or Safari on iPhone, to add it to your home screen.'}
+            'Open TrackFarm in Chrome on Android, or Safari on iPhone, to add it to your home screen.'}
         </div>
       </div>
       {state === 'installed' && (

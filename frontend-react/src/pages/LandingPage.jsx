@@ -19,8 +19,8 @@ import Footer from "./homepage/Footer";
 import { FaqSection } from "./homepage/Faq";
 import { HowItWorks } from "./homepage/HowItWorks";
 
-const dashboardPreview = "/supportImage/zoe-richardson-frDyQOsjQZI-unsplash.jpg";
-const dashboardPreview2 = "/supportImage/muhammed-minhaj-vp-8YZOdT7CsGk-unsplash.jpg";
+const dashboardPreview = "/supportImage/zoe-richardson-frDyQOsjQZI-unsplash.webp";
+const dashboardPreview2 = "/supportImage/muhammed-minhaj-vp-8YZOdT7CsGk-unsplash.webp";
 const NAV_LINKS = [
   { label: "About", href: "#about" },
   { label: "Features", href: "#features" },
@@ -44,7 +44,7 @@ export function Logo() {
   return (
     <a href="#" className="flex items-center shrink-0">
       <img
-        src="/images/track-farm-logo-horizontal.jpg"
+        src="/images/track-farm-logo-horizontal.webp"
         
         alt="Track Farm"
         width={470}
@@ -169,15 +169,26 @@ function Hero() {
           profit, all in one place.
         </p>
 
-        <a
-          href="/signup"
-          className="hero-cta mt-12 inline-flex items-center gap-2 rounded-full bg-[#d9ed69] py-3.5 pl-6 pr-3 text-[15px] font-semibold text-[#244b2e] transition-colors hover:bg-coal-500  hover:bg-[#094229] hover:text-white"
-        >
-          Get started free
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-neutral-950">
-            <ArrowUpRight size={16} strokeWidth={2.5} />
-          </span>
-        </a>
+        {/* Phones: the two buttons share one column so Log in matches Get started's width */}
+        <div className="mt-12 inline-flex flex-col items-stretch gap-3 md:block">
+          <a
+            href="/signup"
+            className="hero-cta inline-flex items-center gap-2 rounded-full bg-[#d9ed69] py-3.5 pl-6 pr-3 text-[15px] font-semibold text-[#244b2e] transition-colors hover:bg-coal-500  hover:bg-[#094229] hover:text-white"
+          >
+            Get started free
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-neutral-950">
+              <ArrowUpRight size={16} strokeWidth={2.5} />
+            </span>
+          </a>
+
+          {/* Phones only: Log in sits right under Get started instead of hiding in the menu */}
+          <a
+            href="/login"
+            className="hero-cta inline-flex h-11 items-center justify-center rounded-full border-[1.5px] border-[#174b35] bg-white px-8 text-[14px] font-semibold text-[#174b35] shadow-sm transition-colors hover:bg-[#174b35] hover:text-white md:hidden"
+          >
+            Log in
+          </a>
+        </div>
       </div>
     </section>
   );

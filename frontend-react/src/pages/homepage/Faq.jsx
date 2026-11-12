@@ -1,6 +1,6 @@
 ﻿import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import faqPoultry from "/images/jan-baborak-qKIoSfYSXb8-unsplash.jpg";
+import faqPoultry from "/images/jan-baborak-qKIoSfYSXb8-unsplash.webp";
 
 const faqs = [
   {

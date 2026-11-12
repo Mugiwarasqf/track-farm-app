@@ -20,6 +20,7 @@ import { HistoryIcon } from '../ui/HistoryIcon';
 import { FarmIcon } from '../ui/FarmIcon';
 import { OfflineBanner } from '../pwa/OfflineBanner';
 import { UpdateBanner } from '../pwa/UpdateBanner';
+import { InstallPrompt } from '../pwa/InstallPrompt';
 import { EmailBounceBanner } from '../ui/EmailBounceBanner';
 
 const VIEW_TITLES = {
@@ -180,6 +181,9 @@ export function AppShell() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
+
+        {/* "Add to home screen" card: phones, dashboard only, rarely (see lib/pwa.js) */}
+        {location.pathname === '/dashboard' && <InstallPrompt />}
 
         {/* Mobile Bottom Navigation Bar -- floats as its own rounded card above
             the safe area rather than sitting flush with the screen edges, so

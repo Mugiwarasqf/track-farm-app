@@ -234,7 +234,7 @@ export function Sidebar({ isOpen, onClose }) {
             same way the nav icons are. */}
         <div className="pb-5 pt-3 shrink-0 flex justify-center">
           <img
-            src="/images/svg.png"
+            src="/images/svg.webp"
             alt="Healthy Birds, Better Yields"
             className="w-26 h-26 object-contain brightness-0 invert opacity-90"
           />
