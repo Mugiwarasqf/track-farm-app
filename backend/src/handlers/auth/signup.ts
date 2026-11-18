@@ -14,6 +14,7 @@ import { badRequest, ok, serverError } from "../../lib/http";
 import { newId } from "../../lib/ids";
 import { logger } from "../../lib/logger";
 import { isSuppressed } from "../../lib/suppression";
+import { sesMessage, welcomeEmail } from "../../lib/emailTemplates";
 
 const cognito = new CognitoIdentityProviderClient({});
 const ses = new SESClient({});
@@ -119,12 +120,7 @@ export async function handler(event: APIGatewayProxyEventV2) {
         new SendEmailCommand({
           Source: SENDER_EMAIL,
           Destination: { ToAddresses: [email] },
-          Message: {
-            Subject: { Data: "Welcome to TrackFarm" },
-            Body: {
-              Text: { Data: "Your TrackFarm account is ready. Log in any time to start tracking your farm." },
-            },
-          },
+          Message: sesMessage(welcomeEmail()),
         })
       );
     } catch (err: any) {

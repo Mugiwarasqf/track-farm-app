@@ -58,9 +58,18 @@ export function subscribe(listener) {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Same shape as the server's ids (backend/src/lib/ids.ts): a millisecond
+ * timestamp, then a random part. Entries are stored sorted by this id, so a
+ * plain random UUID made offline entries sort out of time order — which made
+ * the daily logging reminder think old entries were the newest.
+ */
 export function newEntryId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-  return `local-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+  const random =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `local-${Math.random().toString(16).slice(2, 10)}`;
+  return `${Date.now()}-${random}`;
 }
 
 function openDb() {
