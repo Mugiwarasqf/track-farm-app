@@ -4,6 +4,7 @@ import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 import { ddb, tables } from "../../lib/dynamo";
 import { isSuppressed } from "../../lib/suppression";
 import { logger } from "../../lib/logger";
+import { type DueVaccine, sesMessage, vaccinationReminderEmail } from "../../lib/emailTemplates";
 
 const ses = new SESClient({});
 const SENDER_EMAIL = process.env.SES_SENDER_EMAIL!;
@@ -52,6 +53,12 @@ export const handler: ScheduledHandler = async () => {
   let skippedNoFarmOrEmail = 0;
   let skippedDisabled = 0;
 
+  // One email per farm listing everything due, rather than one email per
+  // vaccine: three batches due on the same day used to mean three identical
+  // "Vaccination reminder" emails.
+  const byFarm = new Map<string, { email: string; due: DueVaccine[] }>();
+  const farmCache = new Map<string, Record<string, any> | null>();
+
   for (const item of dueSoon.Items ?? []) {
     const batch = await ddb.send(
       new QueryCommand({
@@ -61,47 +68,56 @@ export const handler: ScheduledHandler = async () => {
         ExpressionAttributeValues: { ":batchId": item.batchId },
       })
     );
-    const farmId = batch.Items?.[0]?.farmId;
+    const batchItem = batch.Items?.[0];
+    const farmId = batchItem?.farmId;
     if (!farmId) {
       logger.warn("vaccination_reminder_skipped_no_farm", { batchId: item.batchId, scheduleId: item.scheduleId });
       skippedNoFarmOrEmail++;
       continue;
     }
+    // Closed batches have no birds left to vaccinate.
+    if (batchItem?.status && batchItem.status !== "active") continue;
 
-    const farm = await ddb.send(new GetCommand({ TableName: tables.farms, Key: { farmId } }));
-    const email = farm.Item?.ownerEmail;
+    if (!farmCache.has(farmId)) {
+      const farm = await ddb.send(new GetCommand({ TableName: tables.farms, Key: { farmId } }));
+      farmCache.set(farmId, farm.Item ?? null);
+    }
+    const farm = farmCache.get(farmId);
+    const email = farm?.ownerEmail;
     if (!email) {
       logger.warn("vaccination_reminder_skipped_no_email", { farmId, batchId: item.batchId });
       skippedNoFarmOrEmail++;
       continue;
     }
 
-    const prefs = farm.Item?.notificationPrefs;
+    const prefs = farm?.notificationPrefs;
     if (prefs?.emailAlerts === false || prefs?.vaccinationReminders === false) {
       logger.info("vaccination_reminder_skipped_disabled", { farmId, email });
       skippedDisabled++;
       continue;
     }
 
+    const entry = byFarm.get(farmId) ?? { email, due: [] as DueVaccine[] };
+    entry.due.push({
+      vaccineName: String(item.vaccineName || "Vaccine"),
+      batchName: String(batchItem?.name || "your batch"),
+      dueDate: String(item.dueDate),
+    });
+    byFarm.set(farmId, entry);
+  }
+
+  for (const [farmId, { email, due }] of byFarm) {
     if (await isSuppressed(email)) {
-      logger.warn("vaccination_reminder_skipped_suppressed", { email, batchId: item.batchId });
+      logger.warn("vaccination_reminder_skipped_suppressed", { email, farmId });
       skippedSuppressed++;
       continue;
     }
-
-    const dueToday = item.dueDate === today;
-    const message = dueToday
-      ? `${item.vaccineName} is due today for one of your batches.`
-      : `${item.vaccineName} is due on ${item.dueDate} — a few days away.`;
 
     await ses.send(
       new SendEmailCommand({
         Source: SENDER_EMAIL,
         Destination: { ToAddresses: [email] },
-        Message: {
-          Subject: { Data: "Vaccination reminder" },
-          Body: { Text: { Data: message } },
-        },
+        Message: sesMessage(vaccinationReminderEmail(due, today)),
       })
     );
     sent++;
