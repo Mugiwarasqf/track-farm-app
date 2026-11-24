@@ -47,3 +47,9 @@ variable "ses_events_topic_arn" {
   description = "The ses module's SNS topic for Bounce/Complaint notifications — subscribed by the ses_events Lambda defined in this module."
   type        = string
 }
+
+variable "vapid_public_key" {
+  description = "Web Push public key (VAPID). Empty turns phone notifications off; the private half lives in SSM, never here."
+  type        = string
+  default     = ""
+}

@@ -185,7 +185,7 @@ export function vaccinationReminderEmail(due: DueVaccine[], today: string): Emai
       ],
       details: sorted.map((v) => ({ label: `${v.vaccineName} · ${v.batchName}`, value: when(v) })),
       buttonLabel: "See vaccination schedule",
-      buttonPath: "/dashboard",
+      buttonPath: "/inventory?tab=vaccination",
       footer: SETTINGS_FOOTER,
     }),
   };
@@ -224,6 +224,36 @@ export function loggingReminderEmail(lastLogDate: string | null, batchNames: str
       buttonPath: "/batches",
       footer: SETTINGS_FOOTER,
     }),
+  };
+}
+
+// ---- Phone notification text ------------------------------------------------
+// Short versions of the two reminder emails, for lib/push.ts. Same wording,
+// same destination, so a farmer sees one consistent message on both.
+
+export function vaccinationPush(due: DueVaccine[], today: string) {
+  const sorted = [...due].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const first = sorted[0];
+  const when = first.dueDate === today ? "today" : friendlyDate(first.dueDate);
+  return {
+    title: sorted.length === 1 ? `Vaccine due ${when}` : `${sorted.length} vaccines due soon`,
+    body:
+      sorted.length === 1
+        ? `${first.vaccineName} for ${first.batchName}. Tap to see your vaccination schedule.`
+        : `First: ${first.vaccineName} for ${first.batchName}, ${when}. Tap to see them all.`,
+    url: "/inventory?tab=vaccination",
+    tag: "vaccination-reminder",
+  };
+}
+
+export function loggingPush(lastLogDate: string | null) {
+  return {
+    title: "Logging reminder",
+    body: lastLogDate
+      ? `Nothing recorded since ${friendlyDate(lastLogDate)}. Tap to update your batches.`
+      : "Your batch has no records yet. Tap to record today's numbers.",
+    url: "/batches",
+    tag: "logging-reminder",
   };
 }
 

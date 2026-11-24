@@ -4,7 +4,8 @@ import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 import { ddb, tables } from "../../lib/dynamo";
 import { isSuppressed } from "../../lib/suppression";
 import { logger } from "../../lib/logger";
-import { loggingReminderEmail, sesMessage } from "../../lib/emailTemplates";
+import { loggingPush, loggingReminderEmail, sesMessage } from "../../lib/emailTemplates";
+import { sendPushToFarm } from "../../lib/push";
 
 const ses = new SESClient({});
 const SENDER_EMAIL = process.env.SES_SENDER_EMAIL!;
@@ -70,14 +71,17 @@ export const handler: ScheduledHandler = async () => {
   const farms = await ddb.send(new ScanCommand({ TableName: tables.farms }));
 
   let sent = 0;
+  let pushed = 0;
   let skippedSuppressed = 0;
   let skippedUpToDate = 0;
   let skippedNoActiveBatches = 0;
   let skippedDisabled = 0;
 
   for (const farm of farms.Items ?? []) {
+    // The logging-reminder switch turns off both email and phone
+    // notifications; the email switch below only turns off the email.
     const prefs = farm.notificationPrefs;
-    if (prefs?.emailAlerts === false || prefs?.loggingNudges === false) {
+    if (prefs?.loggingNudges === false) {
       logger.info("entry_nudge_skipped_disabled", { farmId: farm.farmId });
       skippedDisabled++;
       continue;
@@ -120,6 +124,10 @@ export const handler: ScheduledHandler = async () => {
       continue;
     }
 
+    // Phone notifications go out whatever happens with email.
+    pushed += await sendPushToFarm(farm.farmId, loggingPush(mostRecentLog));
+
+    if (prefs?.emailAlerts === false || !farm.ownerEmail) continue;
     if (await isSuppressed(farm.ownerEmail)) {
       logger.warn("entry_nudge_skipped_suppressed", { email: farm.ownerEmail, farmId: farm.farmId });
       skippedSuppressed++;
@@ -144,6 +152,7 @@ export const handler: ScheduledHandler = async () => {
   logger.info("entry_nudges_run_complete", {
     farmsScanned: farms.Items?.length ?? 0,
     sent,
+    pushed,
     skippedSuppressed,
     skippedUpToDate,
     skippedNoActiveBatches,

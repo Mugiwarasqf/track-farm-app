@@ -10,7 +10,7 @@ import {
   CirclePlus,
   PackagePlus,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useBatches } from '../context/BatchContext';
 import { LOGS_CHANGED_EVENT, getLogs } from '../api/logs';
 import { getSchedule } from '../api/schedule';
@@ -76,10 +76,18 @@ function StockCardSkeleton() {
   );
 }
 
+const INVENTORY_TABS = ['feed', 'eggs', 'vaccination', 'multivitamins'];
+
 export function InventoryPage() {
   const { batches } = useBatches();
 
-  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'eggs' | 'vaccination' | 'multivitamins'
+  // ?tab=vaccination (from a vaccination reminder email or notification)
+  // opens that tab directly instead of the default feed tab.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const requested = searchParams.get('tab');
+    return INVENTORY_TABS.includes(requested) ? requested : 'feed';
+  }); // 'feed' | 'eggs' | 'vaccination' | 'multivitamins'
   const [loading, setLoading] = useState(true);
 
   // Aggregated data across all batches

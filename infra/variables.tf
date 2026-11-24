@@ -98,3 +98,9 @@ variable "deploy_custom_domain" {
   type        = bool
   default     = false
 }
+
+variable "vapid_public_key" {
+  description = "Web Push (VAPID) public key for phone notifications. Not secret. Leave empty to keep phone notifications off. The matching private key goes in SSM at /<project_name>/<environment>/vapid-private-key."
+  type        = string
+  default     = ""
+}

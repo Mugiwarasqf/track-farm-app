@@ -8,11 +8,23 @@
     <link rel="icon" type="image/jpeg" href="/images/loadingimg.jpg" />
     <!-- Installable app (PWA): see public/manifest.json and public/sw.js -->
     <link rel="manifest" href="/manifest.json" />
+    <!-- Landing page only: start downloading the hero image (the largest thing
+         on screen) immediately, instead of after the app's JavaScript runs. -->
+    <script>
+      if (location.pathname === '/') {
+        var heroPreload = document.createElement('link');
+        heroPreload.rel = 'preload';
+        heroPreload.as = 'image';
+        heroPreload.href = '/images/Gemini_Generated_Image_6mz3jr6mz3jr6mz3.webp';
+        heroPreload.fetchPriority = 'high';
+        document.head.appendChild(heroPreload);
+      }
+    </script>
     <meta name="theme-color" content="#09120e" />
-    <link rel="apple-touch-icon" href="/images/loadingimg.jpg" />
+    <link rel="apple-touch-icon" href="/icon/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="FarmBook" />
+    <meta name="apple-mobile-web-app-title" content="TrackFarm" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>
       (function() {

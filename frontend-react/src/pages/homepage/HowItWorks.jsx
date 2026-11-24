@@ -57,29 +57,33 @@ export function HowItWorks() {
           </p>
         </div>
 
-        {/* Six tiles: one per row below lg, three per row on large screens */}
-        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-5">
+        {/* Six tiles.
+            Phones: the tablet card, one per row.
+            Tablets: two per row, photo on top (4:3), text below.
+            Laptops (lg+): three per row, text left and photo right. */}
+        <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-5">
           {FEATURES.map((feature) => (
             <div
               key={feature.title}
-              className="group flex flex-col-reverse overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:border-[#174b35]/30 hover:shadow-md sm:flex-row sm:items-stretch"
+              className="group flex w-full flex-col-reverse overflow-hidden rounded-lg border border-stone-200/80 bg-white shadow-sm transition-all duration-300 hover:border-[#174b35]/30 hover:shadow-md lg:flex-row lg:items-stretch"
             >
-              {/* Text Content (Left side on desktop/tablet) */}
-              <div className="flex flex-1 flex-col p-3 sm:p-6 lg:p-4">
-                <h3 className="font-heading text-lg font-bold text-[#174b35] sm:text-xl lg:text-base">
+              {/* Text: below the photo on phones and tablets, left of it on laptops */}
+              <div className="flex flex-1 flex-col p-5 lg:p-4">
+                <h3 className="font-heading text-xl font-bold text-[#174b35] lg:text-base">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-xs leading-relaxed text-stone-600 sm:text-[13px] lg:text-xs">
+                <p className="mt-2 text-[15px] leading-relaxed text-stone-600 lg:text-xs">
                   {feature.description}
                 </p>
               </div>
 
-              {/* Image (Right side on desktop/tablet) */}
-              <div className="relative h-38 w-full overflow-hidden sm:h-auto sm:w-[46%] sm:min-w-[190px] lg:w-[40%] lg:min-w-0">
+              {/* Photo: fixed 4:3 box on phones and tablets so it never outgrows
+                  the text; on laptops it fills the right-hand side of the card. */}
+              <div className="relative aspect-[4/3] w-full overflow-hidden lg:aspect-auto lg:w-[40%]">
                 <img
                   src={feature.image}
                   alt={feature.alt}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
               </div>

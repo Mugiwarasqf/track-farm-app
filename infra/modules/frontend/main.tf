@@ -140,6 +140,7 @@ resource "aws_s3_object" "config" {
     api_base       = var.api_base
     client_id      = var.cognito_client_id
     cognito_region = var.cognito_region
+    vapid_public_key = var.vapid_public_key
   })
 }
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import {
   Menu,
   User,
@@ -21,6 +21,10 @@ import { FarmIcon } from '../ui/FarmIcon';
 import { OfflineBanner } from '../pwa/OfflineBanner';
 import { UpdateBanner } from '../pwa/UpdateBanner';
 import { InstallPrompt } from '../pwa/InstallPrompt';
+import { PushPrompt } from '../pwa/PushPrompt';
+import { refreshPushSubscription } from '../../lib/push';
+import { prefetchAppPages } from '../../lib/lazyPages';
+import { LoadingIndicator } from '../ui/LoadingIndicator';
 import { EmailBounceBanner } from '../ui/EmailBounceBanner';
 
 const VIEW_TITLES = {
@@ -39,6 +43,15 @@ export function AppShell() {
   const userMenuRef = useRef(null);
   const { farm, logout } = useAuth();
   const location = useLocation();
+
+  // Phones with notifications on re-save their subscription once per app
+  // open, in case the browser rotated it (see lib/push.js).
+  useEffect(() => {
+    refreshPushSubscription();
+    // Download the other pages in the background so they open instantly,
+    // and so the service worker has them for offline use.
+    prefetchAppPages();
+  }, []);
   const { pending, sending, flush } = useOfflineQueue();
 
   useEffect(() => {
@@ -179,11 +192,24 @@ export function AppShell() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10 max-w-7xl w-full mx-auto">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-20">
+                <LoadingIndicator label="Loading" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
 
         {/* "Add to home screen" card: phones, dashboard only, rarely (see lib/pwa.js) */}
-        {location.pathname === '/dashboard' && <InstallPrompt />}
+        {location.pathname === '/dashboard' && (
+          <>
+            <InstallPrompt />
+            <PushPrompt />
+          </>
+        )}
 
         {/* Mobile Bottom Navigation Bar -- floats as its own rounded card above
             the safe area rather than sitting flush with the screen edges, so

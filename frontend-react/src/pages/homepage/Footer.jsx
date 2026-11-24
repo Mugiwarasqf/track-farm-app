@@ -64,7 +64,7 @@ export default function Footer() {
       <div
         className="relative w-full bg-cover bg-bottom bg-no-repeat pt-44 sm:pt-60 md:pt-72 pb-16"
         style={{
-          backgroundImage: "url('/images/Gemini_Generated_Image_12whj312whj312wh.jpg')",
+          backgroundImage: "url('/images/Gemini_Generated_Image_12whj312whj312wh.webp')",
         }}
       >
         {/* Soft top gradient to blend cleanly from page above */}

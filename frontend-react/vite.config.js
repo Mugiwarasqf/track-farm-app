@@ -27,15 +27,15 @@ function stampServiceWorker() {
 }
 
 /**
- * Preloads the Poppins weights used for most on-screen text (400 body, 600
- * semibold labels/nav) so the browser fetches them immediately instead of
+ * Preloads the Poppins weights the landing page uses (400 body, 500 nav,
+ * 600 labels, 700 headings, including the hero title) so the browser fetches them immediately instead of
  * after the fallback-font paint. font-display: swap still shows a visible
  * flash while a weight loads even self-hosted -- this is what actually
  * closes that gap, not just the self-hosting itself.
  */
 function preloadCriticalFonts() {
   let outDir = 'dist';
-  const criticalWeights = [400, 600];
+  const criticalWeights = [400, 500, 600, 700];
   return {
     name: 'farmbook-preload-fonts',
     apply: 'build',
@@ -76,7 +76,12 @@ function optimizeImages() {
   const PHOTO_MAX_WIDTH = 1600;
   const ICON_MAX_WIDTH = 256;
   const MIN_BYTES_TO_PROCESS = 20_000;
-  const PINNED_SIZE_FILES = new Set(['icon/app-icon.png', 'icon/app-icon-192.png']);
+  const PINNED_SIZE_FILES = new Set([
+    'icon/app-icon.png',
+    'icon/app-icon-192.png',
+    'icon/app-icon-maskable.png',
+    'icon/apple-touch-icon.png',
+  ]);
 
   return {
     name: 'farmbook-optimize-images',

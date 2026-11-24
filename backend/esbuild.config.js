@@ -24,6 +24,7 @@ const entries = {
   "scheduled-vaccination-reminders": "src/handlers/scheduled/vaccinationReminders.ts",
   "scheduled-entry-nudges": "src/handlers/scheduled/entryNudges.ts",
   "ses-events": "src/handlers/sesEvents/index.ts",
+  push: "src/handlers/push/index.ts",
 };
 
 async function main() {

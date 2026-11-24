@@ -15,7 +15,7 @@ locals {
   # has 3).
   api_lambda_keys = [
     "batches", "farms", "feed_stock", "mortality", "feed", "eggs", "weight", "sick_bay", "vaccinations",
-    "vaccination_schedule", "summary", "sync",
+    "vaccination_schedule", "summary", "sync", "push",
     "auth_signup", "auth_login", "auth_forgot_password", "auth_confirm_forgot_password",
   ]
 }
@@ -274,6 +274,22 @@ resource "aws_apigatewayv2_route" "sync_batch" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "POST /sync/batch"
   target             = "integrations/${aws_apigatewayv2_integration.this["sync"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "push_subscribe" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /push/subscriptions"
+  target             = "integrations/${aws_apigatewayv2_integration.this["push"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "push_unsubscribe" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /push/subscriptions/remove"
+  target             = "integrations/${aws_apigatewayv2_integration.this["push"].id}"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
   authorization_type = "JWT"
 }

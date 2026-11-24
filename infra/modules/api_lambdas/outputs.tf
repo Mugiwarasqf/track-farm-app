@@ -91,5 +91,10 @@ output "functions" {
       arn        = aws_lambda_function.scheduled_entry_nudges.arn
       invoke_arn = aws_lambda_function.scheduled_entry_nudges.invoke_arn
     }
+    push = {
+      name       = aws_lambda_function.push.function_name
+      arn        = aws_lambda_function.push.arn
+      invoke_arn = aws_lambda_function.push.invoke_arn
+    }
   }
 }

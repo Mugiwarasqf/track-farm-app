@@ -4,7 +4,8 @@ import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 import { ddb, tables } from "../../lib/dynamo";
 import { isSuppressed } from "../../lib/suppression";
 import { logger } from "../../lib/logger";
-import { type DueVaccine, sesMessage, vaccinationReminderEmail } from "../../lib/emailTemplates";
+import { type DueVaccine, sesMessage, vaccinationPush, vaccinationReminderEmail } from "../../lib/emailTemplates";
+import { sendPushToFarm } from "../../lib/push";
 
 const ses = new SESClient({});
 const SENDER_EMAIL = process.env.SES_SENDER_EMAIL!;
@@ -49,6 +50,7 @@ export const handler: ScheduledHandler = async () => {
   );
 
   let sent = 0;
+  let pushed = 0;
   let skippedSuppressed = 0;
   let skippedNoFarmOrEmail = 0;
   let skippedDisabled = 0;
@@ -56,7 +58,7 @@ export const handler: ScheduledHandler = async () => {
   // One email per farm listing everything due, rather than one email per
   // vaccine: three batches due on the same day used to mean three identical
   // "Vaccination reminder" emails.
-  const byFarm = new Map<string, { email: string; due: DueVaccine[] }>();
+  const byFarm = new Map<string, { email: string | null; emailOn: boolean; due: DueVaccine[] }>();
   const farmCache = new Map<string, Record<string, any> | null>();
 
   for (const item of dueSoon.Items ?? []) {
@@ -83,21 +85,24 @@ export const handler: ScheduledHandler = async () => {
       farmCache.set(farmId, farm.Item ?? null);
     }
     const farm = farmCache.get(farmId);
-    const email = farm?.ownerEmail;
-    if (!email) {
-      logger.warn("vaccination_reminder_skipped_no_email", { farmId, batchId: item.batchId });
+    if (!farm) {
+      logger.warn("vaccination_reminder_skipped_no_farm_row", { farmId, batchId: item.batchId });
       skippedNoFarmOrEmail++;
       continue;
     }
 
-    const prefs = farm?.notificationPrefs;
-    if (prefs?.emailAlerts === false || prefs?.vaccinationReminders === false) {
-      logger.info("vaccination_reminder_skipped_disabled", { farmId, email });
+    // The vaccination switch turns off both email and phone notifications;
+    // the email switch only turns off the email.
+    const prefs = farm.notificationPrefs;
+    if (prefs?.vaccinationReminders === false) {
+      logger.info("vaccination_reminder_skipped_disabled", { farmId });
       skippedDisabled++;
       continue;
     }
+    const email: string | null = farm.ownerEmail || null;
+    const emailOn = Boolean(email) && prefs?.emailAlerts !== false;
 
-    const entry = byFarm.get(farmId) ?? { email, due: [] as DueVaccine[] };
+    const entry = byFarm.get(farmId) ?? { email, emailOn, due: [] as DueVaccine[] };
     entry.due.push({
       vaccineName: String(item.vaccineName || "Vaccine"),
       batchName: String(batchItem?.name || "your batch"),
@@ -106,7 +111,10 @@ export const handler: ScheduledHandler = async () => {
     byFarm.set(farmId, entry);
   }
 
-  for (const [farmId, { email, due }] of byFarm) {
+  for (const [farmId, { email, emailOn, due }] of byFarm) {
+    pushed += await sendPushToFarm(farmId, vaccinationPush(due, today));
+
+    if (!emailOn || !email) continue;
     if (await isSuppressed(email)) {
       logger.warn("vaccination_reminder_skipped_suppressed", { email, farmId });
       skippedSuppressed++;
@@ -128,6 +136,7 @@ export const handler: ScheduledHandler = async () => {
   logger.info("vaccination_reminders_run_complete", {
     due: dueSoon.Items?.length ?? 0,
     sent,
+    pushed,
     skippedSuppressed,
     skippedNoFarmOrEmail,
     skippedDisabled,

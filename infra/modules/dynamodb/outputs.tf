@@ -13,6 +13,7 @@ output "table_names" {
     weight_logs           = aws_dynamodb_table.weight_logs.name
     sick_bay              = aws_dynamodb_table.sick_bay.name
     suppressed_emails     = aws_dynamodb_table.suppressed_emails.name
+    push_subscriptions    = aws_dynamodb_table.push_subscriptions.name
   }
 }
 
@@ -33,6 +34,8 @@ output "table_arns" {
     aws_dynamodb_table.weight_logs.arn,
     aws_dynamodb_table.sick_bay.arn,
     aws_dynamodb_table.suppressed_emails.arn,
+    aws_dynamodb_table.push_subscriptions.arn,
+    "${aws_dynamodb_table.push_subscriptions.arn}/index/*",
   ]
 }
 

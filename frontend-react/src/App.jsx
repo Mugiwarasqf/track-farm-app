@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { useBatches } from './context/BatchContext';
@@ -8,17 +8,29 @@ import { LoadingIndicator } from './components/ui/LoadingIndicator';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { OnboardingPage } from './pages/OnboardingPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { CreateBatchPage } from './pages/CreateBatchPage';
-import { BatchDetailPage } from './pages/BatchDetailPage';
-import { BatchesPage } from './pages/BatchesPage';
-import { HistoryPage } from './pages/HistoryPage';
-import { BatchHistoryDetailPage } from './pages/BatchHistoryDetailPage';
-import { InventoryPage } from './pages/InventoryPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { NotificationsPage } from './pages/NotificationsPage';
+// Everything past login loads on demand (see lib/lazyPages.js), so a first
+// visit to the landing page doesn't download the whole app.
+import {
+  ForgotPasswordPage,
+  OnboardingPage,
+  DashboardPage,
+  CreateBatchPage,
+  BatchDetailPage,
+  BatchesPage,
+  HistoryPage,
+  BatchHistoryDetailPage,
+  InventoryPage,
+  SettingsPage,
+  NotificationsPage,
+} from './lib/lazyPages';
+
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-[#0F1112] flex items-center justify-center">
+      <LoadingIndicator label="Loading" />
+    </div>
+  );
+}
 
 // Router doesn't reset scroll on navigation by itself -- without this, opening
 // a batch from partway down the list page keeps the old scroll position, so
@@ -85,6 +97,10 @@ export default function App() {
           from recording anything. Writes made while offline still need a
           client-side queue to survive — see the note in api/client.js. */}
       <ScrollToTop />
+      {/* Pages inside the app shell have their own boundary in AppShell, so
+          the navigation stays put while a page loads; this one covers
+          onboarding and forgot-password. */}
+      <Suspense fallback={<FullScreenLoader />}>
       <Routes>
         {/* Public Routes */}
         <Route
@@ -196,6 +212,7 @@ export default function App() {
         {/* Catch-all → redirect home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </>
   );
 }

@@ -12,11 +12,13 @@ import { updateFarm } from '../../api/farms';
 import { SettingsCard, ToggleRow, DetailRow, StatusPill } from './ui';
 import { PREFS_EVENT, readPrefs, writePrefs } from '../../lib/notifications/prefs';
 import { VaccineIcon } from '../ui/VaccineIcon';
+import { PhoneNotificationsCard, usePushState } from './PhoneNotificationsCard';
 
 export function NotificationsPanel() {
   const { farm, farmId, updateFarmProfile } = useAuth();
   const [prefs, setPrefs] = useState(readPrefs);
   const [saving, setSaving] = useState(false);
+  const [pushState] = usePushState();
 
   useEffect(() => {
     const handleSync = () => setPrefs(readPrefs());
@@ -46,6 +48,9 @@ export function NotificationsPanel() {
 
   return (
     <div className="space-y-5">
+      {/* Phone notifications (this phone only) */}
+      <PhoneNotificationsCard />
+
       {/* Email Reminders Channel */}
       <SettingsCard
         title="Email Reminders"
@@ -60,7 +65,7 @@ export function NotificationsPanel() {
           <ToggleRow
             icon={Mail}
             title="Daily email reminders"
-            description="Receive scheduled morning emails for upcoming vaccinations and missing daily logs."
+            description="Emails at 7am for upcoming vaccinations and missing daily logs."
             checked={Boolean(prefs.emailAlerts)}
             onChange={(val) => update('emailAlerts', val)}
           />
@@ -68,7 +73,7 @@ export function NotificationsPanel() {
         <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-3">
           {prefs.emailAlerts
             ? `Emails will be sent to ${recipientEmail || 'your sign-in email address'} based on the alerts enabled below.`
-            : 'All automated reminder emails are paused. In-app notifications will still function according to your choices below.'}
+            : 'All reminder emails are paused. Phone and in-app notifications still follow your choices below.'}
         </p>
       </SettingsCard>
 
@@ -88,7 +93,7 @@ export function NotificationsPanel() {
           <ToggleRow
             icon={ClipboardList}
             title="Daily logging reminder"
-            description="An evening nudge when a day passes without any feed, egg, or mortality records entered."
+            description="A 7am reminder when 2 days pass without any feed, egg, death, weight or vaccination records."
             checked={Boolean(prefs.loggingNudges)}
             onChange={(val) => update('loggingNudges', val)}
           />
@@ -124,7 +129,7 @@ export function NotificationsPanel() {
       </SettingsCard>
 
       {/* Delivery Destination */}
-      <SettingsCard title="Where reminders are sent" description="Reminders are delivered to your registered email address.">
+      <SettingsCard title="Where reminders are sent" description="Reminders go to your email, and to any phone with notifications turned on.">
         <div>
           <DetailRow
             label={
@@ -144,7 +149,10 @@ export function NotificationsPanel() {
             }
           />
           <DetailRow label="Text message (SMS)" value="Not available" />
-          <DetailRow label="Phone push notification" value="Not available" />
+          <DetailRow
+            label="Phone notifications (this phone)"
+            value={pushState === 'on' ? 'On' : pushState === 'loading' ? '…' : 'Off'}
+          />
         </div>
       </SettingsCard>
     </div>

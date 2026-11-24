@@ -222,3 +222,31 @@ resource "aws_dynamodb_table" "suppressed_emails" {
     type = "S"
   }
 }
+
+# One row per phone that turned on notifications (Web Push). Keyed by farm
+# so the reminder jobs can fetch a farm's phones in one Query.
+# SubscriptionIdIndex finds the same phone under any farm, so saving it for
+# one account removes it from another (shared phones, account switches) —
+# see backend/src/handlers/push/index.ts.
+resource "aws_dynamodb_table" "push_subscriptions" {
+  name         = "${var.project_name}-${var.environment}-push-subscriptions"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "farmId"
+  range_key    = "subscriptionId"
+
+  attribute {
+    name = "farmId"
+    type = "S"
+  }
+
+  attribute {
+    name = "subscriptionId"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "SubscriptionIdIndex"
+    hash_key        = "subscriptionId"
+    projection_type = "KEYS_ONLY"
+  }
+}

@@ -146,7 +146,7 @@ function Hero() {
       <div
         className="absolute inset-0 -z-10 bg-neutral-100 bg-center min-[1700px]:bg-bottom"
         style={{
-          backgroundImage: "url('/images/Gemini_Generated_Image_6mz3jr6mz3jr6mz3.jpg')",
+          backgroundImage: "url('/images/Gemini_Generated_Image_6mz3jr6mz3jr6mz3.webp')",
           backgroundSize: "cover",
         }}
       />
