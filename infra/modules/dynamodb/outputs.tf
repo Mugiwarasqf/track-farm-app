@@ -14,6 +14,9 @@ output "table_names" {
     sick_bay              = aws_dynamodb_table.sick_bay.name
     suppressed_emails     = aws_dynamodb_table.suppressed_emails.name
     push_subscriptions    = aws_dynamodb_table.push_subscriptions.name
+    supplements           = aws_dynamodb_table.supplements.name
+    sales                 = aws_dynamodb_table.sales.name
+    medicine_purchases    = aws_dynamodb_table.medicine_purchases.name
   }
 }
 
@@ -36,10 +39,13 @@ output "table_arns" {
     aws_dynamodb_table.suppressed_emails.arn,
     aws_dynamodb_table.push_subscriptions.arn,
     "${aws_dynamodb_table.push_subscriptions.arn}/index/*",
+    aws_dynamodb_table.supplements.arn,
+    aws_dynamodb_table.sales.arn,
+    aws_dynamodb_table.medicine_purchases.arn,
   ]
 }
 
 output "suppressed_emails_table_arn" {
-  description = "Broken out on its own (also present in table_arns above) so auth_triggers — which otherwise has no DynamoDB access at all — can be granted read on just this one table instead of the general dynamo_rw policy the rest of the stack uses."
+  description = "Broken out on its own (also present in table_arns above) for any future function that should read only the suppression list."
   value       = aws_dynamodb_table.suppressed_emails.arn
 }

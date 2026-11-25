@@ -62,7 +62,6 @@ module "api_lambdas" {
   cognito_user_pool_arn = module.cognito.user_pool_arn
   cognito_client_id     = module.cognito.client_id
 
-  # Same reasoning as the auth_triggers module call above.
   ses_identity_arns    = module.ses.send_identity_arns
   ses_sender_email     = module.ses.sender_email
   ses_events_topic_arn = module.ses.events_topic_arn
@@ -96,6 +95,7 @@ module "notifications" {
   vaccination_reminders_function_name = module.api_lambdas.functions["scheduled_vaccination_reminders"].name
   entry_nudges_function_arn           = module.api_lambdas.functions["scheduled_entry_nudges"].arn
   entry_nudges_function_name          = module.api_lambdas.functions["scheduled_entry_nudges"].name
+  farm_alerts_function_arn            = module.api_lambdas.functions["scheduled_farm_alerts"].arn
 }
 
 module "frontend" {

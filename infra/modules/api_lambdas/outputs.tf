@@ -96,5 +96,25 @@ output "functions" {
       arn        = aws_lambda_function.push.arn
       invoke_arn = aws_lambda_function.push.invoke_arn
     }
+    supplements = {
+      name       = aws_lambda_function.supplements.function_name
+      arn        = aws_lambda_function.supplements.arn
+      invoke_arn = aws_lambda_function.supplements.invoke_arn
+    }
+    medicine_stock = {
+      name       = aws_lambda_function.medicine_stock.function_name
+      arn        = aws_lambda_function.medicine_stock.arn
+      invoke_arn = aws_lambda_function.medicine_stock.invoke_arn
+    }
+    sales = {
+      name       = aws_lambda_function.sales.function_name
+      arn        = aws_lambda_function.sales.arn
+      invoke_arn = aws_lambda_function.sales.invoke_arn
+    }
+    scheduled_farm_alerts = {
+      name       = aws_lambda_function.scheduled_farm_alerts.function_name
+      arn        = aws_lambda_function.scheduled_farm_alerts.arn
+      invoke_arn = aws_lambda_function.scheduled_farm_alerts.invoke_arn
+    }
   }
 }

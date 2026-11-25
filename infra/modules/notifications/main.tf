@@ -19,6 +19,7 @@ data "aws_iam_policy_document" "invoke_lambdas" {
     resources = [
       var.vaccination_reminders_function_arn,
       var.entry_nudges_function_arn,
+      var.farm_alerts_function_arn,
     ]
   }
 }
@@ -60,6 +61,21 @@ resource "aws_scheduler_schedule" "entry_nudges" {
 
   target {
     arn      = var.entry_nudges_function_arn
+    role_arn = aws_iam_role.scheduler_invoke.arn
+  }
+}
+
+# Feed stock low/out and withdrawal-period-over pushes (scheduled/farmAlerts.ts).
+resource "aws_scheduler_schedule" "farm_alerts" {
+  name       = "${var.project_name}-${var.environment}-farm-alerts"
+  group_name = "default"
+
+  flexible_time_window { mode = "OFF" }
+  schedule_expression          = "cron(0 7 * * ? *)"
+  schedule_expression_timezone = "Africa/Lagos"
+
+  target {
+    arn      = var.farm_alerts_function_arn
     role_arn = aws_iam_role.scheduler_invoke.arn
   }
 }

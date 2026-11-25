@@ -20,7 +20,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+    # The deploy role trusts only main (infra/bootstrap). No `environment:`
+    # here: it would change the OIDC sub claim and the role would refuse it.
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 

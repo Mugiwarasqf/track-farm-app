@@ -1,63 +1,31 @@
-# Hosts frontend-react/'s built output (`npm run build` → dist/) — the
-# real product frontend, built by a friend of the founder in React
-# (Vite), replacing the plain HTML/CSS/JS console this project started
-# with. That original console's module design carries over almost
-# unchanged: same public S3 static website hosting, same
-# config.js.tftpl-generated runtime config (frontend-react/src/config.js
-# reads window.CONFIG exactly like the original did — the friend's own
-# comment in frontend-react/public/config.js says as much). What's new is
-# uploading an entire build directory dynamically instead of a fixed list
-# of files, since Vite's output includes content-hashed filenames that
-# change on every build, and adding an SPA fallback for react-router-dom's
-# client-side routing.
+# Hosts frontend-react/'s built output (`npm run build` -> dist/): every
+# file in dist/ is uploaded (Vite's names are content-hashed), plus a
+# config.js generated from config.js.tftpl at deploy time.
 #
-# Public S3 static website hosting behind CloudFront (added 27/09/2026):
-# the S3 website endpoint itself is HTTP-only and was unusable on mobile —
-# browsers default to, or outright enforce, https:// even for a bare typed
-# domain, and the S3 endpoint doesn't answer on 443 at all. CloudFront
-# terminates HTTPS on its free *.cloudfront.net certificate and proxies to
-# the S3 origin over plain HTTP internally (see aws_cloudfront_distribution
-# below) — no custom domain or ACM certificate needed to fix this. The page
-# itself holds no secrets either way — the Cognito client id is a public
-# OAuth client identifier, not a credential, and every real data operation
-# still requires an authenticated Cognito login (email/OTP) through the
-# real API. A custom domain is still a separate, later step if wanted.
-#
-# CAVEAT: some AWS accounts have S3 Block Public Access enabled at the
-# ACCOUNT level (default for accounts created since 2023), which this
-# module does not touch — only this bucket's own public-access-block is
-# opened here. If `terraform apply` fails on the bucket policy with an
-# access-denied/block-public-access error, that account-level setting is
-# why, and turning it off is a separate, deliberate call for whoever owns
-# this AWS account to make (Settings → Block Public Access, per-account,
-# affects every bucket) — not something to change from inside this module.
+# Private S3 bucket behind CloudFront (24/11/2026; was a public S3 website
+# before). CloudFront reads the bucket through an origin access control,
+# so nothing is reachable except via CloudFront over HTTPS. React Router
+# paths aren't files: S3 answers 403 for them and the custom error
+# responses below serve index.html instead.
 
 resource "aws_s3_bucket" "site" {
   bucket = "${var.project_name}-${var.environment}-frontend"
 }
 
-resource "aws_s3_bucket_website_configuration" "site" {
-  bucket = aws_s3_bucket.site.id
-  index_document {
-    suffix = "index.html"
-  }
-  # react-router-dom does client-side routing — a direct load or refresh
-  # of e.g. /dashboard is not a real S3 object, so without this it 404s
-  # instead of handing the request to the app. S3 website hosting has no
-  # concept of a 200 SPA fallback, only this: the "error" response for any
-  # missing key serves index.html's body (with a 404 status code) and the
-  # router takes over from there once the app boots.
-  error_document {
-    key = "index.html"
-  }
-}
-
+# Private bucket; only this CloudFront distribution can read it (OAC).
 resource "aws_s3_bucket_public_access_block" "site" {
   bucket                  = aws_s3_bucket.site.id
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_cloudfront_origin_access_control" "site" {
+  name                              = "${var.project_name}-${var.environment}-frontend"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
 }
 
 resource "aws_s3_bucket_policy" "site" {
@@ -65,11 +33,12 @@ resource "aws_s3_bucket_policy" "site" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid       = "PublicReadForWebsite"
+      Sid       = "CloudFrontReadOnly"
       Effect    = "Allow"
-      Principal = "*"
+      Principal = { Service = "cloudfront.amazonaws.com" }
       Action    = "s3:GetObject"
       Resource  = "${aws_s3_bucket.site.arn}/*"
+      Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.site.arn } }
     }]
   })
   depends_on = [aws_s3_bucket_public_access_block.site]
@@ -137,9 +106,9 @@ resource "aws_s3_object" "config" {
   # changing, so it needs the same revalidate-on-every-request treatment.
   cache_control = "no-cache"
   content = templatefile(var.config_template, {
-    api_base       = var.api_base
-    client_id      = var.cognito_client_id
-    cognito_region = var.cognito_region
+    api_base         = var.api_base
+    client_id        = var.cognito_client_id
+    cognito_region   = var.cognito_region
     vapid_public_key = var.vapid_public_key
   })
 }
@@ -162,22 +131,13 @@ resource "aws_cloudfront_distribution" "site" {
   aliases             = var.domain_name != null ? [var.domain_name] : []
 
   origin {
-    origin_id   = "s3-website"
-    domain_name = aws_s3_bucket_website_configuration.site.website_endpoint
-
-    custom_origin_config {
-      # The S3 website endpoint doesn't serve HTTPS at all (see the module
-      # header comment) — CloudFront terminates HTTPS for viewers and
-      # talks to the origin over plain HTTP internally.
-      origin_protocol_policy = "http-only"
-      http_port              = 80
-      https_port             = 443
-      origin_ssl_protocols   = ["TLSv1.2"]
-    }
+    origin_id                = "s3"
+    domain_name              = aws_s3_bucket.site.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
   default_cache_behavior {
-    target_origin_id       = "s3-website"
+    target_origin_id       = "s3"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]

@@ -19,3 +19,7 @@ variable "entry_nudges_function_arn" {
 variable "entry_nudges_function_name" {
   type = string
 }
+
+variable "farm_alerts_function_arn" {
+  type = string
+}

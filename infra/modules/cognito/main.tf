@@ -37,6 +37,11 @@ resource "aws_cognito_user_pool" "main" {
   # the friction/safety tradeoff this is).
   auto_verified_attributes = ["email"]
 
+  # A changed email only takes effect once the new address is verified.
+  user_attribute_update_settings {
+    attributes_require_verification_before_update = ["email"]
+  }
+
   account_recovery_setting {
     recovery_mechanism {
       name     = "verified_email"
@@ -77,6 +82,12 @@ resource "aws_cognito_user_pool_client" "mobile" {
 
   # Public client (the mobile app), so no client secret.
   generate_secret = false
+
+  # Only email is client-writable (SignUp needs it). Left unset, every
+  # attribute is writable with the user's own token, including
+  # custom:farmId, which is what separates one farm's data from another's.
+  # The backend sets farmId via the admin API, which this doesn't limit.
+  write_attributes = ["email"]
 
   explicit_auth_flows = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
 }
