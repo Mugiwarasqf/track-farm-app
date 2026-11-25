@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, queryAll, tables } from "../../lib/dynamo";
 import { badRequest, created, farmIdFromEvent, ok } from "../../lib/http";
 import { entryId } from "../../lib/ids";
 import { checkRecordDate } from "../../lib/dates";
@@ -18,15 +18,13 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   const method = event.requestContext.http.method;
 
   if (method === "GET") {
-    const result = await ddb.send(
-      new QueryCommand({
-        TableName: tables.feedPurchases,
-        KeyConditionExpression: "farmId = :farmId",
-        ExpressionAttributeValues: { ":farmId": farmId },
-        ScanIndexForward: false, // entryId is time-prefixed, newest first
-      })
-    );
-    return ok({ purchases: result.Items ?? [] });
+    const purchases = await queryAll({
+      TableName: tables.feedPurchases,
+      KeyConditionExpression: "farmId = :farmId",
+      ExpressionAttributeValues: { ":farmId": farmId },
+      ScanIndexForward: false, // entryId is time-prefixed, newest first
+    });
+    return ok({ purchases });
   }
 
   if (method === "POST") {

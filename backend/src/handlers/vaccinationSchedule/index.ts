@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
+import { PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, queryAll, tables } from "../../lib/dynamo";
 import { badRequest, created, farmIdFromEvent, notFound, ok } from "../../lib/http";
 import { newId } from "../../lib/ids";
 import type { VaccinationSchedule, VaccinationScheduleStatus } from "../../lib/types";
@@ -9,7 +9,7 @@ import { batchBelongsToFarm } from "../../lib/batchAuth";
 
 // The forward-looking half of vaccination reminders (docs/04-v1-feature-scope.md
 // §4) — due dates the scheduled Lambda in handlers/scheduled/vaccinationReminders.ts
-// scans to send SNS reminders. PATCH isn't in docs/10-build-plan.md's API list
+// scans to send reminders. PATCH isn't in docs/10-build-plan.md's API list
 // but the Vaccination mockup screen has a "Mark as Done" action, so it's added
 // here to make that screen's flow actually work.
 export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
@@ -21,14 +21,12 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   if (!(await batchBelongsToFarm(farmId, batchId))) return notFound("batch not found");
 
   if (method === "GET") {
-    const result = await ddb.send(
-      new QueryCommand({
-        TableName: tables.vaccinationSchedules,
-        KeyConditionExpression: "batchId = :batchId",
-        ExpressionAttributeValues: { ":batchId": batchId },
-      })
-    );
-    return ok({ schedule: result.Items ?? [] });
+    const schedule = await queryAll({
+      TableName: tables.vaccinationSchedules,
+      KeyConditionExpression: "batchId = :batchId",
+      ExpressionAttributeValues: { ":batchId": batchId },
+    });
+    return ok({ schedule });
   }
 
   if (method === "POST") {

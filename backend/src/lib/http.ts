@@ -20,8 +20,8 @@ export const serverError = (message: string, extra?: Record<string, unknown>) =>
  * The farmId comes from the authenticated user's Cognito claims, never from
  * a request body or path param — a farmer can only ever act on their own
  * farm. Depends on the "custom:farmId" attribute being set on the Cognito
- * user (see infra/cognito.tf) and populated at signup — that wiring is a
- * TODO tracked in docs/10-build-plan.md.
+ * user, set by auth/signup.ts through the admin API. Users can't write it
+ * themselves (the app client's write_attributes, infra/modules/cognito).
  */
 export function farmIdFromEvent(
   event: APIGatewayProxyEventV2WithJWTAuthorizer

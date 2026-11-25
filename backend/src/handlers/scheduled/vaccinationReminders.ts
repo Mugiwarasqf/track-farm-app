@@ -1,7 +1,7 @@
 import type { ScheduledHandler } from "aws-lambda";
 import { GetCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
-import { ddb, tables } from "../../lib/dynamo";
+import { ddb, queryAll, tables } from "../../lib/dynamo";
 import { isSuppressed } from "../../lib/suppression";
 import { logger } from "../../lib/logger";
 import { type DueVaccine, sesMessage, vaccinationPush, vaccinationReminderEmail } from "../../lib/emailTemplates";
@@ -19,14 +19,9 @@ const REMINDER_WINDOW_DAYS = 3;
 // of this one query without extra state to track "have we already warned
 // about this one."
 //
-// Email, not SMS (31/08/2026) — see backend/src/handlers/auth/otpRequest.ts's
-// header comment for why this switched, and the flag in docs/CLAUDE.md:
-// Toluwase's confirmation was specifically about a *phone notification*,
-// and this project's own research flagged SMS as what matters most if a
-// no-smartphone segment turns out to be real. Switching the delivery
-// channel to email doesn't just change infrastructure — it may weaken the
-// exact validated finding this feature exists to serve. Revisit once the
-// underlying SNS SMS account issue is resolved.
+// Sent as a phone push (lib/push.ts) and an email. Toluwase's confirmation
+// was specifically about a phone notification, so push is the channel that
+// matches the research; email is the fallback for phones without it.
 //
 // Requires two GSIs beyond what docs/10-build-plan.md's data model lists
 // (added in infra/modules/dynamodb/, flagged there too): VaccinationSchedules
@@ -39,15 +34,13 @@ export const handler: ScheduledHandler = async () => {
     .toISOString()
     .slice(0, 10);
 
-  const dueSoon = await ddb.send(
-    new QueryCommand({
-      TableName: tables.vaccinationSchedules,
-      IndexName: "StatusDueDateIndex",
-      KeyConditionExpression: "#status = :upcoming AND dueDate BETWEEN :today AND :windowEnd",
-      ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: { ":upcoming": "upcoming", ":today": today, ":windowEnd": windowEnd },
-    })
-  );
+  const dueSoon = await queryAll({
+    TableName: tables.vaccinationSchedules,
+    IndexName: "StatusDueDateIndex",
+    KeyConditionExpression: "#status = :upcoming AND dueDate BETWEEN :today AND :windowEnd",
+    ExpressionAttributeNames: { "#status": "status" },
+    ExpressionAttributeValues: { ":upcoming": "upcoming", ":today": today, ":windowEnd": windowEnd },
+  });
 
   let sent = 0;
   let pushed = 0;
@@ -61,7 +54,7 @@ export const handler: ScheduledHandler = async () => {
   const byFarm = new Map<string, { email: string | null; emailOn: boolean; due: DueVaccine[] }>();
   const farmCache = new Map<string, Record<string, any> | null>();
 
-  for (const item of dueSoon.Items ?? []) {
+  for (const item of dueSoon) {
     const batch = await ddb.send(
       new QueryCommand({
         TableName: tables.batches,
@@ -134,7 +127,7 @@ export const handler: ScheduledHandler = async () => {
   // The only way to confirm from CloudWatch alone that today's run actually
   // found and acted on something, without needing a failure to look at.
   logger.info("vaccination_reminders_run_complete", {
-    due: dueSoon.Items?.length ?? 0,
+    due: dueSoon.length,
     sent,
     pushed,
     skippedSuppressed,

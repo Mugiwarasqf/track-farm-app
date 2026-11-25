@@ -18,6 +18,7 @@ infra/*_override.tf.json
 # Backend (Node/TypeScript)
 backend/node_modules/
 backend/dist/
+backend/dist-test/
 backend/*.zip
 backend/coverage/
 

@@ -1,7 +1,7 @@
 import type { ScheduledHandler } from "aws-lambda";
-import { QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
-import { ddb, tables } from "../../lib/dynamo";
+import { ddb, queryAll, scanAll, tables } from "../../lib/dynamo";
 import { isSuppressed } from "../../lib/suppression";
 import { logger } from "../../lib/logger";
 import { loggingPush, loggingReminderEmail, sesMessage } from "../../lib/emailTemplates";
@@ -68,7 +68,7 @@ export const handler: ScheduledHandler = async () => {
     .toISOString()
     .slice(0, 10);
 
-  const farms = await ddb.send(new ScanCommand({ TableName: tables.farms }));
+  const farms = await scanAll({ TableName: tables.farms });
 
   let sent = 0;
   let pushed = 0;
@@ -77,7 +77,7 @@ export const handler: ScheduledHandler = async () => {
   let skippedNoActiveBatches = 0;
   let skippedDisabled = 0;
 
-  for (const farm of farms.Items ?? []) {
+  for (const farm of farms) {
     // The logging-reminder switch turns off both email and phone
     // notifications; the email switch below only turns off the email.
     const prefs = farm.notificationPrefs;
@@ -87,16 +87,13 @@ export const handler: ScheduledHandler = async () => {
       continue;
     }
 
-    const batches = await ddb.send(
-      new QueryCommand({
-        TableName: tables.batches,
-        KeyConditionExpression: "farmId = :farmId",
-        FilterExpression: "#status = :active",
-        ExpressionAttributeNames: { "#status": "status" },
-        ExpressionAttributeValues: { ":farmId": farm.farmId, ":active": "active" },
-      })
-    );
-    const activeBatches = batches.Items ?? [];
+    const activeBatches = await queryAll({
+      TableName: tables.batches,
+      KeyConditionExpression: "farmId = :farmId",
+      FilterExpression: "#status = :active",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":farmId": farm.farmId, ":active": "active" },
+    });
     if (activeBatches.length === 0) {
       skippedNoActiveBatches++;
       continue;
@@ -150,7 +147,7 @@ export const handler: ScheduledHandler = async () => {
   }
 
   logger.info("entry_nudges_run_complete", {
-    farmsScanned: farms.Items?.length ?? 0,
+    farmsScanned: farms.length,
     sent,
     pushed,
     skippedSuppressed,

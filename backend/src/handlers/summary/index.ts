@@ -1,93 +1,172 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
+import { queryAll, tables } from "../../lib/dynamo";
 import { farmIdFromEvent, ok } from "../../lib/http";
+import { stockKey } from "../../lib/feedStock";
+import { feedPurchaseCost, feedUsageCost, medicinePurchaseCost, recordCost } from "../../lib/expenses";
 
-// GET /farms/{id}/summary?period=week|month — docs/10-build-plan.md §3 and §5.
-// Elizabeth's interview (docs/05-interview-elizabeth.txt) is why this is a
-// live rollup rather than a stored monthly total: it's computed fresh from
-// the logs every call, so it reflects entries the moment they're saved.
+// GET /farms/{id}/summary?period=week|month: the profit & expense summary.
+// Money out counts when spent: store purchases on the day bought, things
+// bought straight for a batch when recorded (lib/expenses.ts).
+// (docs/04-v1-feature-scope.md §5). Computed fresh from the records on every
+// call, so it's a running total (Elizabeth's ask), never a month-end figure.
+// "week" = last 7 days, "month" = last 30, both including today. Month is
+// also split into 7-day buckets so a farmer sees each week roll into it.
 //
-// "week"/"month" are rolling windows (last 7 / last 30 days), not calendar
-// boundaries — simplest correct thing for a beta; revisit if farmers expect
-// calendar-week alignment once real usage comes in.
-//
-// Costs come straight off feedLogs/vaccinationRecords; sums use a
-// FilterExpression on `date` rather than a range key, which is fine at
-// beta scale (a handful of batches, each with a few hundred log rows) but
-// would want a date GSI before this needs to run at real volume.
+// farmId comes from the caller's token, never the {id} in the path.
+
+const EGGS_PER_CRATE = 30;
+
+interface Totals {
+  feedCostNaira: number;
+  vaccineCostNaira: number;
+  supplementCostNaira: number;
+  birdCostNaira: number;
+  eggRevenueNaira: number;
+  birdSalesNaira: number;
+}
+
+const emptyTotals = (): Totals => ({
+  feedCostNaira: 0,
+  vaccineCostNaira: 0,
+  supplementCostNaira: 0,
+  birdCostNaira: 0,
+  eggRevenueNaira: 0,
+  birdSalesNaira: 0,
+});
+
+const costOf = (t: Totals) => t.feedCostNaira + t.vaccineCostNaira + t.supplementCostNaira + t.birdCostNaira;
+const incomeOf = (t: Totals) => t.eggRevenueNaira + t.birdSalesNaira;
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : Number(v) || 0);
+
+function isoDay(msAgo: number): string {
+  return new Date(Date.now() - msAgo).toISOString().slice(0, 10);
+}
 
 export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
-  // farmId comes from the caller's own JWT claim, never the {id} in the
-  // path — the path segment is kept for a RESTful URL shape but is
-  // otherwise ignored. This was a real bug until now: trusting the path
-  // parameter meant any authenticated user could read any OTHER farm's
-  // financial summary just by changing the URL. See lib/http.ts's
-  // farmIdFromEvent doc comment for the same principle applied everywhere
-  // else in this API.
   const farmId = farmIdFromEvent(event);
 
   const period = event.queryStringParameters?.period === "month" ? "month" : "week";
   const days = period === "month" ? 30 : 7;
-  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const endDate = new Date().toISOString().slice(0, 10);
+  const endDate = isoDay(0);
+  const startDate = isoDay((days - 1) * 86400000);
+  const inWindow = (d: unknown) => typeof d === "string" && d >= startDate && d <= endDate;
 
-  const batchesResult = await ddb.send(
-    new QueryCommand({
-      TableName: tables.batches,
-      KeyConditionExpression: "farmId = :farmId",
-      ExpressionAttributeValues: { ":farmId": farmId },
-      ProjectionExpression: "batchId",
-    })
-  );
-  const batchIds = (batchesResult.Items ?? []).map((item) => item.batchId as string);
+  // 7-day buckets counted back from today; the oldest may be shorter.
+  const weeks = Array.from({ length: Math.ceil(days / 7) }, (_, i) => {
+    const end = isoDay(i * 7 * 86400000);
+    const start = isoDay(Math.min(i * 7 + 6, days - 1) * 86400000);
+    return { startDate: start, endDate: end, totals: emptyTotals() };
+  });
+  const bucket = (d: string) => weeks.find((w) => d >= w.startDate && d <= w.endDate);
 
-  let feedCostNaira = 0;
-  let drugCostNaira = 0;
-  let eggRevenueNaira = 0;
+  const total = emptyTotals();
+  const add = (date: unknown, key: keyof Totals, amount: number) => {
+    if (!inWindow(date) || !amount) return;
+    total[key] += amount;
+    const w = bucket(date as string);
+    if (w) w.totals[key] += amount;
+  };
+
+  const batches = await queryAll({
+    TableName: tables.batches,
+    KeyConditionExpression: "farmId = :farmId",
+    ExpressionAttributeValues: { ":farmId": farmId },
+  });
+
   let birdsLost = 0;
+  let eggsCollected = 0;
+
+  for (const batch of batches) {
+    // Birds bought count on the batch's start date. salesRevenueNaira is
+    // from before /sales existed (set at completion); new sales are below.
+    add(batch.startDate, "birdCostNaira", num(batch.purchaseCostNaira));
+    if (typeof batch.closedAt === "string") add(batch.closedAt.slice(0, 10), "birdSalesNaira", num(batch.salesRevenueNaira));
+  }
+
+  // Store purchases count as money out on the day bought (lib/expenses.ts).
+  const [feedPurchases, medicinePurchases] = await Promise.all([
+    queryAll({
+      TableName: tables.feedPurchases,
+      KeyConditionExpression: "farmId = :f",
+      ExpressionAttributeValues: { ":f": farmId },
+    }),
+    queryAll({
+      TableName: tables.medicinePurchases,
+      KeyConditionExpression: "farmId = :f",
+      FilterExpression: "#d BETWEEN :s AND :e",
+      ExpressionAttributeNames: { "#d": "date" },
+      ExpressionAttributeValues: { ":f": farmId, ":s": startDate, ":e": endDate },
+    }),
+  ]);
+  // All feed ever bought, so usage from any of it is recognised as already paid for.
+  const feedStoreKeys = new Set(feedPurchases.map((p) => stockKey(p)));
+  for (const p of feedPurchases) add(p.date, "feedCostNaira", feedPurchaseCost(p));
+  for (const p of medicinePurchases) {
+    add(p.date, p.kind === "vaccine" ? "vaccineCostNaira" : "supplementCostNaira", medicinePurchaseCost(p));
+  }
+
+  const sales = await queryAll({
+    TableName: tables.sales,
+    KeyConditionExpression: "farmId = :f",
+    FilterExpression: "#d BETWEEN :s AND :e",
+    ExpressionAttributeNames: { "#d": "date" },
+    ExpressionAttributeValues: { ":f": farmId, ":s": startDate, ":e": endDate },
+  });
+  for (const s of sales) {
+    add(s.date, s.product === "birds" ? "birdSalesNaira" : "eggRevenueNaira", num(s.amountNaira));
+  }
 
   await Promise.all(
-    batchIds.map(async (batchId) => {
-      const dateFilter = {
-        KeyConditionExpression: "batchId = :batchId",
-        FilterExpression: "#date BETWEEN :start AND :end",
-        ExpressionAttributeNames: { "#date": "date" },
-        ExpressionAttributeValues: { ":batchId": batchId, ":start": startDate, ":end": endDate },
-      };
+    batches.map(async (batch) => {
+      const byBatch = (table: string, dateField = "date") =>
+        queryAll({
+          TableName: table,
+          KeyConditionExpression: "batchId = :b",
+          FilterExpression: "#d BETWEEN :s AND :e",
+          ExpressionAttributeNames: { "#d": dateField },
+          ExpressionAttributeValues: { ":b": batch.batchId, ":s": startDate, ":e": endDate },
+        });
 
-      const [feed, eggs, vaccinations, mortality] = await Promise.all([
-        ddb.send(new QueryCommand({ TableName: tables.feedLogs, ...dateFilter })),
-        ddb.send(new QueryCommand({ TableName: tables.eggLogs, ...dateFilter })),
-        ddb.send(
-          new QueryCommand({
-            TableName: tables.vaccinationRecords,
-            KeyConditionExpression: "batchId = :batchId",
-            FilterExpression: "dateAdministered BETWEEN :start AND :end",
-            ExpressionAttributeValues: { ":batchId": batchId, ":start": startDate, ":end": endDate },
-          })
-        ),
-        ddb.send(new QueryCommand({ TableName: tables.mortalityLogs, ...dateFilter })),
+      const [feed, eggs, vaccinations, supplements, mortality] = await Promise.all([
+        byBatch(tables.feedLogs),
+        byBatch(tables.eggLogs),
+        byBatch(tables.vaccinationRecords, "dateAdministered"),
+        byBatch(tables.supplements),
+        byBatch(tables.mortalityLogs),
       ]);
 
-      for (const item of feed.Items ?? []) feedCostNaira += item.costNaira ?? 0;
-      for (const item of eggs.Items ?? []) eggRevenueNaira += item.revenueNaira ?? 0;
-      for (const item of vaccinations.Items ?? []) drugCostNaira += item.costNaira ?? 0;
-      for (const item of mortality.Items ?? []) birdsLost += item.count ?? 0;
+      for (const f of feed) add(f.date, "feedCostNaira", feedUsageCost(f, feedStoreKeys));
+      for (const e of eggs) {
+        add(e.date, "eggRevenueNaira", num(e.revenueNaira));
+        eggsCollected += num(e.crates) * EGGS_PER_CRATE + num(e.looseEggs);
+      }
+      for (const v of vaccinations) add(v.dateAdministered, "vaccineCostNaira", recordCost(v));
+      for (const s of supplements) add(s.date, "supplementCostNaira", recordCost(s));
+      for (const m of mortality) birdsLost += num(m.count);
     })
   );
-
-  const netNaira = eggRevenueNaira - feedCostNaira - drugCostNaira;
 
   return ok({
     farmId,
     period,
     startDate,
     endDate,
-    feedCostNaira,
-    drugCostNaira,
-    eggRevenueNaira,
-    netNaira,
+    ...total,
+    // Kept for older app builds: vaccines + vitamins/dewormers.
+    drugCostNaira: total.vaccineCostNaira + total.supplementCostNaira,
+    totalCostNaira: costOf(total),
+    totalIncomeNaira: incomeOf(total),
+    netNaira: incomeOf(total) - costOf(total),
     birdsLost,
+    eggsCollected,
+    weeks: weeks
+      .map((w) => ({
+        startDate: w.startDate,
+        endDate: w.endDate,
+        costNaira: costOf(w.totals),
+        incomeNaira: incomeOf(w.totals),
+        netNaira: incomeOf(w.totals) - costOf(w.totals),
+      }))
+      .reverse(),
   });
 }

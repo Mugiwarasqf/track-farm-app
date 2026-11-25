@@ -1,5 +1,6 @@
 import { tables } from "../../lib/dynamo";
 import { makeLogResourceHandler } from "../../lib/logResourceHandler";
+import { pickOptional } from "../../lib/optionalFields";
 
 export const handler = makeLogResourceHandler({
   tableName: tables.eggLogs,
@@ -13,9 +14,9 @@ export const handler = makeLogResourceHandler({
       date: body.date ?? new Date().toISOString().slice(0, 10),
       crates,
       looseEggs,
-      // No price-per-crate exists yet anywhere in the docs — omit rather
-      // than guess a revenue figure. See lib/types.ts header note.
-      revenueNaira: body.revenueNaira,
+      // Money from eggs sold, entered by the farmer (optional). Feeds the
+      // summary's egg revenue; no price-per-crate is guessed.
+      ...pickOptional(body, { revenueNaira: "number" }),
     };
   },
 });

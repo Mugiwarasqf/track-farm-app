@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "build": "node esbuild.config.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node test/run.js"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.700.0",

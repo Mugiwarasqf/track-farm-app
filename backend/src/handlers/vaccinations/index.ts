@@ -30,6 +30,7 @@ export const handler = makeLogResourceHandler({
         administeredBy: "string",
         notes: "string",
         scheduleId: "string",
+        stockKey: "string",
       }),
     };
   },

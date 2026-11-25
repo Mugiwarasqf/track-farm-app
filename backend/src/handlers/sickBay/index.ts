@@ -1,7 +1,8 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
-import { badRequest, created, notFound, ok } from "../../lib/http";
+import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, queryAll, tables } from "../../lib/dynamo";
+import { badRequest, created, farmIdFromEvent, notFound, ok } from "../../lib/http";
+import { batchBelongsToFarm } from "../../lib/batchAuth";
 import { entryId } from "../../lib/ids";
 import { pickOptional } from "../../lib/optionalFields";
 import { checkRecordDate } from "../../lib/dates";
@@ -23,16 +24,17 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   if (!batchId) return badRequest("batch id is required in the path");
   const method = event.requestContext.http.method;
 
+  const farmId = farmIdFromEvent(event);
+  if (!(await batchBelongsToFarm(farmId, batchId))) return notFound("batch not found");
+
   if (method === "GET") {
-    const result = await ddb.send(
-      new QueryCommand({
-        TableName: tables.sickBay,
-        KeyConditionExpression: "batchId = :batchId",
-        ExpressionAttributeValues: { ":batchId": batchId },
-        ScanIndexForward: false, // caseId is time-prefixed: newest first
-      })
-    );
-    return ok({ cases: result.Items ?? [] });
+    const cases = await queryAll({
+      TableName: tables.sickBay,
+      KeyConditionExpression: "batchId = :batchId",
+      ExpressionAttributeValues: { ":batchId": batchId },
+      ScanIndexForward: false, // caseId is time-prefixed: newest first
+    });
+    return ok({ cases });
   }
 
   if (method === "POST") {

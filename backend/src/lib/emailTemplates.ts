@@ -185,7 +185,7 @@ export function vaccinationReminderEmail(due: DueVaccine[], today: string): Emai
       ],
       details: sorted.map((v) => ({ label: `${v.vaccineName} · ${v.batchName}`, value: when(v) })),
       buttonLabel: "See vaccination schedule",
-      buttonPath: "/inventory?tab=vaccination",
+      buttonPath: "/dashboard",
       footer: SETTINGS_FOOTER,
     }),
   };
@@ -241,8 +241,56 @@ export function vaccinationPush(due: DueVaccine[], today: string) {
       sorted.length === 1
         ? `${first.vaccineName} for ${first.batchName}. Tap to see your vaccination schedule.`
         : `First: ${first.vaccineName} for ${first.batchName}, ${when}. Tap to see them all.`,
-    url: "/inventory?tab=vaccination",
+    url: "/dashboard",
     tag: "vaccination-reminder",
+  };
+}
+
+export interface FeedAlertLine {
+  label: string;
+  left: number;
+  daysLeft: number | null;
+  status: "low" | "out";
+}
+
+function bags(n: number): string {
+  const v = Math.round(Math.max(n, 0) * 10) / 10;
+  return `${v} bag${v === 1 ? "" : "s"}`;
+}
+
+export function feedStockPush(lines: FeedAlertLine[]) {
+  // Out-of-stock first: it's the more urgent one.
+  const sorted = [...lines].sort((a, b) => (a.status === "out" ? 0 : 1) - (b.status === "out" ? 0 : 1));
+  const first = sorted[0];
+  const more = sorted.length > 1 ? ` And ${sorted.length - 1} more feed${sorted.length > 2 ? "s" : ""} low.` : "";
+  const detail =
+    first.status === "out"
+      ? `None left in your store.`
+      : `${bags(first.left)} left${first.daysLeft != null ? `, about ${first.daysLeft} day${first.daysLeft === 1 ? "" : "s"} at your current use` : ""}.`;
+  return {
+    title: first.status === "out" ? `Out of ${first.label}` : `${first.label} is running low`,
+    body: `${detail}${more} Tap to see your feed store.`,
+    url: "/inventory",
+    tag: "feed-stock",
+  };
+}
+
+export interface WithdrawalEnded {
+  batchName: string;
+  product: string;
+  batchId: string;
+}
+
+export function withdrawalEndedPush(ended: WithdrawalEnded[]) {
+  const first = ended[0];
+  return {
+    title: ended.length === 1 ? `${first.batchName}: safe to sell again` : `${ended.length} withdrawal periods over`,
+    body:
+      ended.length === 1
+        ? `The withdrawal period after ${first.product} ends today. Eggs and meat are safe to sell.`
+        : `Eggs and meat from ${ended.map((e) => e.batchName).join(", ")} are safe to sell again.`,
+    url: ended.length === 1 ? `/batches/${first.batchId}` : "/batches",
+    tag: "withdrawal-ended",
   };
 }
 
