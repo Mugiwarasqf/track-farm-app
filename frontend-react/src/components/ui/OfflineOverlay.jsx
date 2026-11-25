@@ -116,7 +116,7 @@ export function OfflineOverlay() {
                 )}
               </button>
 
-              <p className="text-[11px] text-stone-400 font-medium">
+              <p className="text-xs text-stone-400 font-medium">
                 Your existing data is still accessible · changes will sync when reconnected
               </p>
             </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ExternalLink, Share, SquarePlus, Wifi, X, Zap } from 'lucide-react';
 import {
   INSTALL_CHANGED_EVENT,
+  claimCardSlot,
   installCardDue,
   installState,
   isIosSafari,
@@ -17,7 +18,7 @@ const SHOW_DELAY_MS = 4000;
 const SHOWABLE = ['prompt', 'ios', 'inapp'];
 
 /** The TrackFarm tile, drawn like an app icon so the farmer knows what to look for. */
-function AppTile() {
+export function AppTile() {
   return (
     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#174b35] shadow-sm ring-1 ring-black/5">
       <img src="/images/chiken_dark.png" alt="" aria-hidden="true" className="h-7 w-7 object-contain invert" />
@@ -29,7 +30,7 @@ function AppTile() {
 function Step({ number, icon: Icon, title, detail }) {
   return (
     <li className="flex items-center gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-[11px] font-bold text-stone-700 dark:bg-[#252A2E] dark:text-[#CBD5E1]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-700 dark:bg-[#252A2E] dark:text-[#CBD5E1]">
         {number}
       </span>
       <div className="min-w-0 flex-1">
@@ -60,9 +61,9 @@ function Benefits() {
   );
 }
 
-const PRIMARY =
+export const PRIMARY =
   'flex w-full items-center justify-center gap-2 rounded-xl bg-[#174b35] px-4 py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#0f3825] active:bg-[#092518] cursor-pointer';
-const SECONDARY =
+export const SECONDARY =
   'w-full rounded-xl px-4 py-3 text-[14px] font-semibold text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-800 dark:text-[#94A3B8] dark:hover:bg-[#1E2124] dark:hover:text-[#F5F7F5] cursor-pointer';
 
 /**
@@ -100,7 +101,7 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (shownThisVisit.current || !delayPassed || !isPhone) return;
-    if (!SHOWABLE.includes(state) || !installCardDue()) return;
+    if (!SHOWABLE.includes(state) || !installCardDue() || !claimCardSlot()) return;
     shownThisVisit.current = true;
     recordInstallCardShown();
     setOpen(true);

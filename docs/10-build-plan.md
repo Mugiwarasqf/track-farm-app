@@ -28,7 +28,7 @@ infrastructure needed to actually run them for real users:
    breakdown, weekly rolling into monthly)
 
 Plus, not a "feature" on that list but required to ship any of them:
-email/OTP auth (switched from phone/OTP 31/08/2026 — see §4), the
+email+password auth (see §4 for how it got there), the
 notification mechanism #4 depends on, and the free trial → paid gate
 agreed as the pricing model.
 
@@ -78,6 +78,16 @@ already-built frontend rather than invented speculatively:**
   FCR itself is derived client-side
   (`frontend-react/src/lib/batch.js`'s `computeFCR`), not stored,
   same principle as feed stock and the profit summary.
+- **SickBayCase** — `batchId`, birds isolated, symptoms, outcome
+  (recovered/died). Deaths are mirrored into MortalityLog by the app.
+- **Supplement** — `batchId`, vitamin/dewormer given, dose, course length,
+  withdrawal days, cost. On the phone only until 24/11/2026; moved to the
+  server so the daily job can push "withdrawal period over".
+- **Sale** — `farmId`, date, birds (type, batch, count) or eggs (size,
+  crates/pieces, optional batch), price per unit, amount, buyer. The only
+  source of income; egg collection (EggLog) no longer carries money.
+- **PushSubscription** — `farmId`, one row per phone that turned on
+  notifications (Web Push endpoint + keys).
 - **Farm** gained an optional `farmerName` field (the person, distinct
   from the farm's own name) — `frontend-react`'s onboarding/account
   settings collect it separately and were sending it before the field
@@ -93,49 +103,46 @@ comes in.
 
 ## 3. API shape (API Gateway HTTP API + Lambda)
 
-Grouped by resource, REST-ish. Auth via Cognito email/OTP on every route
-except signup/login.
+Grouped by resource, REST-ish. Every route needs a Cognito ID token
+except the four auth routes. `infra/modules/api_gateway/main.tf` is the
+authoritative list.
 
-- `POST /auth/otp/request`, `POST /auth/otp/verify` — email login.
-- `POST /batches`, `GET /batches`, `PATCH /batches/{id}` — create/list/
-  close a batch.
-- `GET /farms/{id}`, `PATCH /farms/{id}` — farm profile (name, farmerName,
-  location). farmId always comes from the caller's JWT claim, never the
-  `{id}` path segment (kept only for a RESTful URL shape) — added after
-  `GET /farms/{id}/summary` (below) was found trusting that path segment,
-  a real authorization bug fixed at the same time this was added.
-- `POST /batches/{id}/mortality`, `GET /batches/{id}/mortality`
-- `POST /batches/{id}/feed`, `GET /batches/{id}/feed`
-- `POST /batches/{id}/eggs`, `GET /batches/{id}/eggs`
-- `POST /batches/{id}/weight`, `GET /batches/{id}/weight` — periodic
-  average bird weight samples; the input Feed Conversion Ratio is
-  computed from (see §2).
-- `POST /feed-stock`, `GET /feed-stock` — farm-level feed purchases (see
-  §2's FeedPurchase).
-- `POST /batches/{id}/vaccinations`, `GET /batches/{id}/vaccinations` —
-  the backward-looking log.
-- `POST /batches/{id}/vaccination-schedule`,
-  `GET /batches/{id}/vaccination-schedule` — the forward-looking schedule
-  reminder emails are generated from.
-- `GET /farms/{id}/summary?period=week|month` — the profit/expense
-  rollup, category-broken-down, computed on read (or cached and
-  invalidated on new entries, if read volume ends up justifying it).
-- `POST /sync/batch` — accepts a JSON Lines batch of queued offline writes
-  (see §5) and applies them idempotently.
+- `POST /auth/signup`, `/auth/login`, `/auth/forgot-password`,
+  `/auth/confirm-forgot-password` — email+password (see §4).
+- `GET /batches`, `POST /batches`, `PATCH /batches/{id}` (edit, complete,
+  reopen), `DELETE /batches/{id}` (also deletes every record in it).
+- `GET /farms/{id}`, `PATCH /farms/{id}` — farm profile, pens, custom
+  bird types, notification preferences. farmId always comes from the
+  caller's token, never the `{id}` path segment (kept only for URL shape).
+- `GET`/`POST /batches/{id}/mortality`, `/feed`, `/eggs`, `/weight`,
+  `/vaccinations`, `/supplements` — append-only logs.
+- `GET`/`POST /batches/{id}/vaccination-schedule`, `PATCH
+  /batches/{id}/vaccination-schedule/{scheduleId}` (mark done/missed).
+- `GET`/`POST /batches/{id}/sick-bay`, `PATCH
+  /batches/{id}/sick-bay/{caseId}` (close a case).
+- `GET`/`POST /feed-stock` — farm-level feed purchases.
+- `GET`/`POST /medicine-stock` — vaccines and vitamins bought into the
+  farm's store; batch vaccination/vitamin records take from it
+  (`stockKey`, `vialsUsed`/`packsUsed`).
+- `GET`/`POST /sales`, `DELETE /sales/{entryId}` — birds or eggs sold;
+  a bird sale lowers its batch's birds alive.
+- `GET /farms/{id}/summary?period=week|month` — money in/out by category,
+  computed on read, month split into weeks.
+- `POST /sync/batch` — the offline queue (§6), applied idempotently.
+- `POST /push/subscriptions`, `/push/subscriptions/remove` — phone
+  notifications on/off for one phone.
 
 ---
 
 ## 4. Auth & onboarding
 
-**Switched from phone/OTP to email/OTP (31/08/2026).** Originally Cognito
-with phone number + OTP, matching the "fits this audience better than
-email" reasoning in `CLAUDE.md`, grounded in the low-digital-literacy
-survey findings. The switch was a pragmatic call after AWS SNS SMS
-sending failed account-wide ("No origination entities available to send"
-in both `eu-west-1` and `us-east-1`) — an AWS account capability gap, not
-new user research suggesting email actually fits this audience better.
-**This is flagged, not settled** — worth reconsidering if the SNS issue
-gets resolved. See `CLAUDE.md`'s Cognito bullet for the full note.
+**Email+password (since 08/10/2026).** The plan was phone + SMS code,
+which fits this audience best; SMS failed account-wide (31/08/2026), the
+fallback email code then hit the SES sandbox and Apple's rejection, so
+login moved to a password, which needs no message per login. Password
+reset uses Cognito's own email. See `docs/11-platform-obstacles.md`. A
+password is real friction for this audience, so the policy is loose (8+
+characters, a lowercase letter and a number).
 
 Given the confirmed low-digital-literacy segment (Banjo not recognizing
 "book keeping app", Ruth not knowing what "cloud" means), onboarding needs
@@ -150,28 +157,22 @@ to:
 
 ---
 
-## 5. Notifications (SES)
+## 5. Notifications
 
-One mechanism, two triggers, per the cross-cutting note in
-`04-v1-feature-scope.md`:
+One mechanism, several triggers, per the cross-cutting note in
+`04-v1-feature-scope.md`. Three daily 7am (Lagos) jobs:
 
-- **Vaccination reminder** — driven by VaccinationSchedule due dates.
-  Toluwase confirmed directly that a notification a few days before, plus
-  a same-day reminder, would have prevented her 3-month miss — that's the
-  cadence to build (T-minus-N-days + day-of), not a single alert. Note:
-  her confirmation was specifically about a *phone* notification — now
-  delivered by email instead (see §4's flag), which may not carry the
-  same validated weight.
-- **Entry-completeness nudge** — "nothing logged today/this week," tied to
-  Elizabeth's finding that her totals broke from missing entries, not bad
-  math.
+- **Vaccination reminder** — schedule items due in the next 3 days, so a
+  heads-up plus a same-day reminder (Toluwase's cadence). Push + email.
+- **Entry-completeness nudge** — nothing logged for 2 days (Elizabeth's
+  missing-entries finding). Push + email.
+- **Farm alerts** — feed stock low/out, withdrawal period over. Push only.
+  Not interview-validated (scope doc §8).
 
-Email via SES for now, not SMS via SNS (see §4). Push can be primary once
-the frontend is chosen; SMS mattering most if a no-smartphone segment
-shows up later (currently unvalidated — 0/27 survey respondents selected
-"no smartphone, basic phone only") is now moot for auth specifically,
-since email requires internet access anyway — worth remembering if that
-segment does turn out to be real.
+Phone push (Web Push) is the main channel: it's what Toluwase confirmed
+("a phone notification") and it isn't affected by the SES problems.
+Email is the fallback. SMS still matters if a no-smartphone segment
+shows up (0/27 so far).
 
 ---
 
@@ -206,11 +207,8 @@ afterward — decided direction, see `CLAUDE.md`. For the beta specifically:
 Don't let these block starting the backend/data-model work, but they need
 answers before the beta can actually ship to a farmer's hands:
 
-- **Frontend framework** — still not chosen (React Native, Flutter, mobile
-  web, etc.), but ownership is settled (31/08/2026): a friend of the
-  founder is building it, so the specific framework is their call to make.
-  Backend API shape above is frontend-agnostic on purpose so this doesn't
-  block backend work.
+- **Frontend framework** — decided: a React (Vite) installable web app,
+  `frontend-react/`, built by Dolapo, the co-founder.
 - **Design direction for the friend's build**: simple, minimalistic,
   farm-oriented — explicitly framed as an interim v1 "face" for the app,
   expected to get replaced by a more polished design later once there's
@@ -233,7 +231,7 @@ answers before the beta can actually ship to a farmer's hands:
 
 ## 9. Suggested build sequence
 
-1. Auth (Cognito email/OTP) + Farm/Batch creation — nothing else works
+1. Auth (Cognito) + Farm/Batch creation — nothing else works
    without this.
 2. Mortality, feed, and egg logging (batch-tagged CRUD) — the three
    universal, simplest features first.
@@ -251,37 +249,20 @@ answers before the beta can actually ship to a farmer's hands:
 
 ## 10. How to view/test this after `terraform apply`
 
-`frontend/` (hosted by `infra/modules/frontend/`, `terraform output
-frontend_url`) is v1 of the actual product frontend and doubles as the
-technical test console for the scaffolded API — its debug panel echoes
-every raw request/response. That's the primary way to click through the
-real auth + CRUD flow now; the options below are for when you need to see
-what's happening underneath it.
-
-- **`terraform output`** after apply — prints `api_endpoint`,
-  `cognito_user_pool_id`, `cognito_client_id`, `frontend_url`,
-  `ses_sender_email`, and the two S3 bucket names.
-- **`terraform.tfvars` needs a real `ses_sender_email`** before applying —
-  no default, must be an inbox you actually control. SES emails that
-  address a confirmation link after `apply` that has to be clicked before
-  anything can send; nothing arrives until that's done.
-- **Calling the API directly** (curl, Postman, Insomnia, or just
-  `frontend/`'s console) to exercise the real auth + CRUD flow:
-  1. `POST {api_endpoint}/auth/otp/request` with `{"email": "you@..."}`.
-  2. Watch for the email. **AWS SES starts every new account in a
-     sandbox**, same shape as SNS's SMS sandbox: both the sender AND every
-     recipient need to be verified identities until the account moves to
-     production sending — an address that hasn't been verified in the SES
-     console won't receive anything, worth checking before assuming the
-     OTP flow is broken.
-  3. `POST {api_endpoint}/auth/otp/verify` with `{"email", "session"
-     (from step 1's response), "code"}` — returns `idToken` on success.
-  4. Use `Authorization: Bearer <idToken>` on every other route (e.g.
-     `POST {api_endpoint}/batches`).
-- **AWS Console**, for looking at what actually exists rather than calling
-  it: DynamoDB → Tables → "Explore table items" to see rows land as you
-  call the API; Lambda → Functions → each one's Monitor tab or its
-  CloudWatch Logs group (`/aws/lambda/<function-name>`) to debug a
-  failure; Cognito → User pools to see provisioned users; SES → Verified
-  identities to check sender/recipient status; API Gateway to see the
-  route list matching `infra/modules/api_gateway/main.tf`.
+- **The app**: `terraform output frontend_url` (beta), or trackfarm.cc
+  for whichever environment owns the domain.
+- **`terraform output`** also prints `api_endpoint`,
+  `cognito_user_pool_id`, `cognito_client_id`, and the S3 bucket names.
+- **Calling the API directly** (curl, Postman):
+  1. `POST {api_endpoint}/auth/signup` or `/auth/login` with
+     `{"email", "password"}` — returns `idToken`.
+  2. Send `Authorization: Bearer <idToken>` on every other route.
+- **Email in sandbox**: only addresses in `ses_test_recipient_emails`
+  receive the welcome and reminder emails. Password-reset codes come from
+  Cognito itself and reach any address.
+- **Scheduled jobs**: run one by hand from the Lambda console (Test, any
+  event) instead of waiting for 7am; its CloudWatch log ends with a
+  `*_run_complete` line counting what it found and sent.
+- **AWS Console**: DynamoDB → "Explore table items" to see rows land;
+  Lambda → Monitor / CloudWatch Logs (`/aws/lambda/<function-name>`) to
+  debug a failure; Cognito → User pools for accounts.

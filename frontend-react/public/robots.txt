@@ -1,0 +1,11 @@
+# TrackFarm: search engines may index the public pages. The app itself sits
+# behind a login, so there's nothing useful for them past the landing page.
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /batches
+Disallow: /inventory
+Disallow: /history
+Disallow: /notifications
+Disallow: /settings
+Disallow: /onboarding

@@ -48,6 +48,13 @@ const RESOURCES: Record<string, ResourceConfig> = {
   eggs: { tableName: tables.eggLogs, idField: "entryId", checkDate: true },
   vaccinations: { tableName: tables.vaccinationRecords, idField: "entryId", checkDate: true },
   weight: { tableName: tables.weightLogs, idField: "entryId", checkDate: true },
+  // A course can be recorded ahead of time, so no future-date check.
+  supplements: {
+    tableName: tables.supplements,
+    idField: "entryId",
+    checkDate: false,
+    requiredFields: ["date", "type", "product"],
+  },
   "vaccination-schedule": {
     tableName: tables.vaccinationSchedules,
     idField: "scheduleId",

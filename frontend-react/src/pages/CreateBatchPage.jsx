@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, ArrowRight, Check, Info, ShieldCheck, Plus, Trash2 } from 'lucide-react';
+import { NairaInput } from '../components/ui/NairaInput';
 import { BirdIcon } from '../components/ui/BirdIcon';
 import { useBatches } from '../context/BatchContext';
 import { useAuth } from '../context/AuthContext';
@@ -64,7 +65,7 @@ function ReviewFacts({ items }) {
     <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
       {items.map((f) => (
         <div key={f.label} className={f.wide ? 'col-span-2 sm:col-span-3' : ''}>
-          <dt className="text-[11px] font-medium uppercase tracking-wide text-[#70829B]">{f.label}</dt>
+          <dt className="text-xs font-medium uppercase tracking-wide text-[#70829B]">{f.label}</dt>
           <dd className={`mt-1 text-sm ${f.value ? 'font-semibold text-[#142033] dark:text-[#F5F7F5]' : 'text-[#70829B]'}`}>{f.value || 'Not set'}</dd>
         </div>
       ))}
@@ -305,7 +306,7 @@ export function CreateBatchPage() {
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
-                <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
+                <Link to="/settings/farm" className="inline-block text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
                   Keep a bird that isn't listed? Add it in Farm Details
                 </Link>
 
@@ -331,7 +332,7 @@ export function CreateBatchPage() {
                   <h4 className="text-xs font-bold text-stone-950 dark:text-[#F5F7F5]">
                     {birdTypeLabel(birdType)}: raised for {BIRD_PURPOSES.find((p) => p.value === purpose)?.label.toLowerCase()}
                   </h4>
-                  <p className="text-[11px] text-stone-600 dark:text-[#70829B] mt-1 leading-relaxed">
+                  <p className="text-xs text-stone-600 dark:text-[#70829B] mt-1 leading-relaxed">
                     {purpose === 'eggs'
                       ? 'Egg collection is tracked, and performance is judged on how many eggs the flock lays.'
                       : purpose === 'meat'
@@ -487,7 +488,7 @@ export function CreateBatchPage() {
                     onChange={e => setHousing(e.target.value)}
                     className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
                   />
-                  <Link to="/settings/farm" className="inline-block text-[11px] font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
+                  <Link to="/settings/farm" className="inline-block text-xs font-semibold text-[#4D6600] dark:text-[#DFFF83] hover:underline">
                     Set up your pens in Farm Details to pick from a list
                   </Link>
                 </>
@@ -509,18 +510,15 @@ export function CreateBatchPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-stone-800 dark:text-[#C8D6E5] block">
-                Cost of the Birds (₦, optional)
+                Cost of the Birds (optional)
               </label>
-              <input
-                type="number"
-                min="0"
-                inputMode="numeric"
-                placeholder="e.g. 450000 for all the birds"
+              <NairaInput
+                placeholder="₦450,000 for all the birds"
                 value={purchaseCost}
-                onChange={e => setPurchaseCost(e.target.value)}
-                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
+                onChange={setPurchaseCost}
+                className="w-full px-4 py-3 bg-white dark:bg-[#17191A] dark:text-[#F5F7F5] border border-stone-300 dark:border-[#3A4550] rounded-xl text-base focus:outline-hidden focus:ring-2 focus:ring-[#DFFF83]/70 focus:border-[#B7DA3E] transition-all placeholder:text-stone-400 dark:placeholder:text-[#4A5568]"
               />
-              <p className="text-[11px] text-stone-500 dark:text-[#70829B]">
+              <p className="text-xs text-stone-500 dark:text-[#70829B]">
                 What you paid for the whole batch. Needed to work out profit when the batch is complete.
               </p>
             </div>
@@ -612,13 +610,13 @@ export function CreateBatchPage() {
                 <div key={row.key} className="border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#17191A] rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <span className="inline-flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-[#C8D6E5]">
-                      <span className="w-6 h-6 rounded-full bg-stone-100 dark:bg-[#2B3238] text-stone-600 dark:text-[#70829B] flex items-center justify-center text-[11px]">{index + 1}</span>
+                      <span className="w-6 h-6 rounded-full bg-stone-100 dark:bg-[#2B3238] text-stone-600 dark:text-[#70829B] flex items-center justify-center text-xs">{index + 1}</span>
                       Vaccination {index + 1}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeVaccination(row.key)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 dark:text-[#70829B] hover:text-rose-600 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-stone-500 dark:text-[#70829B] hover:text-rose-600 cursor-pointer"
                       aria-label={`Remove vaccination ${index + 1}`}
                     >
                       <Trash2 size={13} /> Remove
@@ -627,7 +625,7 @@ export function CreateBatchPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                     <div className="sm:col-span-6 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Vaccine</label>
+                      <label className="text-xs font-bold text-stone-700 dark:text-[#C8D6E5] block">Vaccine</label>
                       <select
                         value={row.vaccineName}
                         onChange={e => updateVaccination(row.key, 'vaccineName', e.target.value)}
@@ -649,7 +647,7 @@ export function CreateBatchPage() {
                       )}
                     </div>
                     <div className="sm:col-span-3 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Due date</label>
+                      <label className="text-xs font-bold text-stone-700 dark:text-[#C8D6E5] block">Due date</label>
                       <input
                         type="date"
                         min={today}
@@ -659,7 +657,7 @@ export function CreateBatchPage() {
                       />
                     </div>
                     <div className="sm:col-span-3 space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-700 dark:text-[#C8D6E5] block">Dose <span className="text-rose-500">*</span></label>
+                      <label className="text-xs font-bold text-stone-700 dark:text-[#C8D6E5] block">Dose <span className="text-rose-500">*</span></label>
                       <select
                         value={row.doseNumber}
                         onChange={e => updateVaccination(row.key, 'doseNumber', e.target.value)}
@@ -672,7 +670,7 @@ export function CreateBatchPage() {
                   </div>
 
                   {vaccine && !isOther && (
-                    <p className="text-[11px] text-stone-500 flex items-start gap-1.5">
+                    <p className="text-xs text-stone-500 flex items-start gap-1.5">
                       <Info size={12} className="shrink-0 mt-0.5 text-[#4D6600]" />
                       <span>
                         {ROUTES[vaccine.route]?.label}
@@ -740,11 +738,11 @@ export function CreateBatchPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#17191A]/85 via-[#17191A]/35 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-1 rounded-md bg-[#DFFF83] text-[11px] font-semibold text-[#17191A]">
+                    <span className="px-2.5 py-1 rounded-md bg-[#DFFF83] text-xs font-semibold text-[#17191A]">
                       {birdTypeLabel(birdType)}
                     </span>
                     {purposeLabel && (
-                      <span className="px-2.5 py-1 rounded-md bg-white/15 backdrop-blur-sm text-[11px] font-medium">{purposeLabel}</span>
+                      <span className="px-2.5 py-1 rounded-md bg-white/15 backdrop-blur-sm text-xs font-medium">{purposeLabel}</span>
                     )}
                   </div>
                   <h2 className="mt-2.5 text-2xl sm:text-3xl font-semibold font-heading leading-tight">{name.trim()}</h2>
@@ -758,7 +756,7 @@ export function CreateBatchPage() {
               <dl className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[#E1E8EF] dark:divide-[#2B3238]">
                 {stats.map((s) => (
                   <div key={s.label} className="px-4 sm:px-5 py-4">
-                    <dt className="text-[11px] font-medium uppercase tracking-wide text-[#70829B]">{s.label}</dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[#70829B]">{s.label}</dt>
                     <dd className="mt-1 text-xl font-semibold text-[#142033] dark:text-[#F5F7F5] font-heading tabular-nums">
                       {s.value}
                       {s.unit && <span className="ml-1 text-xs font-medium text-[#70829B]">{s.unit}</span>}

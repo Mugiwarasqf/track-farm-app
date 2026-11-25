@@ -62,10 +62,11 @@ module "api_lambdas" {
   cognito_user_pool_arn = module.cognito.user_pool_arn
   cognito_client_id     = module.cognito.client_id
 
-  # Same reasoning as the auth_triggers module call above.
   ses_identity_arns    = module.ses.send_identity_arns
   ses_sender_email     = module.ses.sender_email
   ses_events_topic_arn = module.ses.events_topic_arn
+
+  vapid_public_key = var.vapid_public_key
 }
 
 module "api_gateway" {
@@ -94,6 +95,7 @@ module "notifications" {
   vaccination_reminders_function_name = module.api_lambdas.functions["scheduled_vaccination_reminders"].name
   entry_nudges_function_arn           = module.api_lambdas.functions["scheduled_entry_nudges"].arn
   entry_nudges_function_name          = module.api_lambdas.functions["scheduled_entry_nudges"].name
+  farm_alerts_function_arn            = module.api_lambdas.functions["scheduled_farm_alerts"].arn
 }
 
 module "frontend" {
@@ -115,6 +117,7 @@ module "frontend" {
   api_base          = var.deploy_custom_domain ? module.api_gateway.custom_domain_url : module.api_gateway.api_endpoint
   cognito_client_id = module.cognito.client_id
   cognito_region    = var.aws_region
+  vapid_public_key  = var.vapid_public_key
 
   domain_name         = var.deploy_custom_domain ? var.domain_name : null
   acm_certificate_arn = var.deploy_custom_domain ? aws_acm_certificate_validation.frontend[0].certificate_arn : null

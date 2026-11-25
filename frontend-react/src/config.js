@@ -10,6 +10,10 @@ export const config = {
   get cognitoRegion() {
     return window.CONFIG?.cognitoRegion || '';
   },
+  /** Web Push public key; empty means phone notifications aren't set up here. */
+  get vapidPublicKey() {
+    return window.CONFIG?.vapidPublicKey || '';
+  },
   get isConfigured() {
     return Boolean(
       this.apiBase &&

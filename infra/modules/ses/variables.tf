@@ -1,5 +1,5 @@
 variable "sender_email" {
-  description = "The literal From address the app sends OTP codes/notifications with (e.g. noreply@trackfarm.cc). Not its own SES identity — authorized entirely by the verified domain_name identity below. See main.tf's header comment."
+  description = "The literal From address the app sends welcome and reminder emails with (e.g. noreply@trackfarm.cc). Not its own SES identity — authorized entirely by the verified domain_name identity below. See main.tf's header comment."
   type        = string
 }
 

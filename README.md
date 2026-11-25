@@ -56,18 +56,19 @@ and `CLAUDE.md` are the only files kept at the project root.
 8. **`infra/`** and **`backend/`**
    The build plan as real code: a modular Terraform stack
    (`infra/main.tf` wires together `infra/modules/dynamodb`, `s3`, `ses`,
-   `auth_triggers`, `cognito`, `api_lambdas`, `api_gateway`,
-   `notifications`, and `frontend`, covering Cognito, API Gateway, 20
-   Lambdas, 12 DynamoDB tables, S3, SES, and daily EventBridge
-   notification schedules) and its TypeScript Lambda source in `backend/`.
+   `cognito`, `api_lambdas`, `api_gateway`, `notifications`, and
+   `frontend`, covering Cognito email+password auth, API Gateway, 24
+   Lambdas, 16 DynamoDB tables, S3, SES, phone push notifications, and
+   daily EventBridge schedules) and its TypeScript Lambda source in
+   `backend/` (`npm test` runs its unit tests).
    `trackfarm.cc` is live: the apex serves the frontend via CloudFront,
    `api.trackfarm.cc` serves the backend. See `CLAUDE.md`'s
    "Infrastructure" section for module detail and its dependency diagram.
 
 9. **`frontend-react/`**
-   The real product frontend (Vite plus React), built by a friend of the
-   founder: batches, logging, schedule, inventory, settings, offline
-   queue. Its API client code is the source of truth for what the backend
+   The real product frontend (Vite plus React), built by Dolapo, the
+   co-founder: batches, logging, vaccination schedule, inventory, profit &
+   loss with sales, settings, phone notifications, offline queue. Its API client code is the source of truth for what the backend
    needs to support.
 
 ## Key findings so far (see `docs/04-v1-feature-scope.md` for full detail)
@@ -88,9 +89,10 @@ and `CLAUDE.md` are the only files kept at the project root.
 
 ## Current obstacles
 
-Two separate problems have hit email delivery (the current login/
-notification channel): AWS denied the SES production access request, and
-Apple/iCloud is outright rejecting mail from the new domain due to no
-sending reputation yet. The original SMS auth blocker (an AWS account
-capability gap) now appears resolved, reopening phone/SMS as an option.
-Full detail in `docs/11-platform-obstacles.md`.
+Two separate problems have hit email delivery: AWS denied the SES
+production access request, and Apple/iCloud is outright rejecting mail
+from the new domain due to no sending reputation yet. Login no longer
+depends on email (email+password since 08/10/2026), and reminders now
+also go out as phone push, which avoids email entirely. The original SMS
+blocker (an AWS account capability gap) now appears resolved, reopening
+phone/SMS as an option. Full detail in `docs/11-platform-obstacles.md`.

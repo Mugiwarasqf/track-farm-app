@@ -1,9 +1,15 @@
+import { useEffect, useState } from 'react';
+import { api } from '../api/client';
+import { enqueueLogEntry, flushQueue, getQueued, newEntryId } from './offlineQueue';
+
 /**
  * Vitamins and supplements: the catalogue the "Record Vitamin" form offers,
  * and the on-device store the records live in.
  *
- * There is no supplements endpoint on the backend yet, so records are kept in
- * localStorage on this device only — say so wherever they're shown.
+ * Records are cached in localStorage (instant, works offline) and sent to
+ * /batches/{id}/supplements through the offline queue, so the server can
+ * push "withdrawal period over". syncSupplements() pulls other devices'
+ * records in and uploads any older device-only ones.
  *
  * Each type has a default method (drinking water or mixed in feed), which
  * decides how the dose is written: "5 g per 4 litres of water" versus
@@ -133,9 +139,87 @@ function saveAll(list) {
   }
 }
 
+export const SUPPLEMENTS_CHANGED_EVENT = 'farmbook:supplements-changed';
+
+function notifyChanged() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SUPPLEMENTS_CHANGED_EVENT));
+}
+
+const uploadable = (e) => Boolean(e.batchId && e.date && e.type && e.product);
+
+/** Queue one entry for the server; its local id becomes the server entryId. */
+function upload(entry) {
+  const { id, batchId, pending, ...payload } = entry;
+  return enqueueLogEntry({ resource: 'supplements', batchId, payload, entryId: id });
+}
+
 /** Adds an entry and returns the updated, newest-first list. */
 export function addSupplement(entry) {
-  const list = [{ ...entry, id: entry.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }, ...loadSupplements()];
+  const saved = { ...entry, id: entry.id || newEntryId() };
+  const list = [saved, ...loadSupplements()];
   saveAll(list);
+  if (uploadable(saved)) upload(saved).then(() => flushQueue()).catch(() => {});
   return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+/** Drop a deleted batch's records from this phone (the server already removed them). */
+export function forgetBatchSupplements(batchId) {
+  saveAll(loadSupplements().filter((e) => e.batchId !== batchId));
+  notifyChanged();
+}
+
+let lastSync = 0;
+const SYNC_GAP_MS = 60 * 1000;
+
+/**
+ * Merge the server's records for these batches into the local cache, and
+ * queue any local record the server doesn't have yet (older builds kept
+ * them on the phone only). Two batches at a time, like farmData's inGroups.
+ */
+export async function syncSupplements(batchIds) {
+  if (!batchIds?.length || Date.now() - lastSync < SYNC_GAP_MS) return;
+  lastSync = Date.now();
+
+  const fromServer = new Map();
+  const loaded = new Set();
+  for (let i = 0; i < batchIds.length; i += 2) {
+    await Promise.all(batchIds.slice(i, i + 2).map(async (batchId) => {
+      try {
+        const data = await api('GET', `/batches/${batchId}/supplements`);
+        (data?.entries || []).forEach((e) => fromServer.set(e.entryId, e));
+        loaded.add(batchId);
+      } catch {
+        // Offline or failed: leave this batch's cache as it is.
+      }
+    }));
+  }
+  if (loaded.size === 0) return;
+
+  const local = loadSupplements();
+  const localById = new Map(local.map((e) => [e.id, e]));
+  const queued = new Set((await getQueued()).map((r) => r.entryId));
+
+  const merged = local.filter((e) => !fromServer.has(e.id));
+  fromServer.forEach((e, id) => {
+    const { entryId, createdAt, ...rest } = e;
+    merged.push({ batchName: localById.get(id)?.batchName || '', ...rest, id });
+  });
+
+  const missing = merged.filter((e) => uploadable(e) && loaded.has(e.batchId) && !fromServer.has(e.id) && !queued.has(e.id));
+  for (const e of missing) await upload(e);
+  if (missing.length) flushQueue().catch(() => {});
+
+  saveAll(merged);
+  notifyChanged();
+}
+
+/** [list, setList] that also refreshes when syncSupplements() merges new records. */
+export function useSupplements() {
+  const [list, setList] = useState(() => loadSupplements());
+  useEffect(() => {
+    const reload = () => setList(loadSupplements());
+    window.addEventListener(SUPPLEMENTS_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(SUPPLEMENTS_CHANGED_EVENT, reload);
+  }, []);
+  return [list, setList];
 }

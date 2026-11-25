@@ -90,7 +90,7 @@ export function buildPerformance(batch, logs, weightLogs, currentBirds) {
       suffix: '/day',
       caption: `Collected on ${latest.label}`,
       change: change == null ? null : { up: change >= 0, text: `${change >= 0 ? '+' : ''}${change}% vs previous week` },
-      extras: currentBirds > 0 ? [{ label: 'Laying rate', value: `${round1((latest.value / currentBirds) * 100)}%` }] : [],
+      extras: currentBirds > 0 ? [{ label: 'Eggs per 100 birds', value: `${round1((latest.value / currentBirds) * 100)}` }] : [],
       points: points.length >= 2 ? points : null,
       thin: 'Log eggs on another day to see the trend.',
       formatTick: (v) => Math.round(v).toLocaleString(),
@@ -111,7 +111,7 @@ export function buildPerformance(batch, logs, weightLogs, currentBirds) {
     const fcr = computeFCR(logs?.feed || [], samples, currentBirds);
     const placed = Number(batch.birdCount) || 0;
     const extras = [];
-    if (fcr != null) extras.push({ label: 'Feed conversion', value: `${fcr} : 1` });
+    if (fcr != null) extras.push({ label: 'Feed per kg of growth', value: `${fcr} kg` });
     if (placed) extras.push({ label: 'Survival', value: `${round1((currentBirds / placed) * 100)}%` });
 
     return {

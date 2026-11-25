@@ -138,7 +138,7 @@ export function StatusPill({ tone = 'neutral', children }) {
     neutral: 'bg-stone-100 text-stone-600 border-stone-200 dark:bg-[#252A2E] dark:text-[#94A3B8] dark:border-[#2B3238]',
   };
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${tones[tone] || tones.neutral}`}>
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${tones[tone] || tones.neutral}`}>
       {children}
     </span>
   );

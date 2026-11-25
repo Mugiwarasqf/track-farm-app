@@ -233,6 +233,50 @@ Treat all of this as unvalidated, the same way as #6.
 
 ---
 
+## 8. Phone push for feed stock and withdrawal periods (founder-directed, not interview-validated)
+
+Added 24/11/2026. Phone notifications (Web Push) first carried only the
+two validated reminders: vaccination (#4) and the logging nudge. A daily
+7am job (`backend/src/handlers/scheduled/farmAlerts.ts`) now also pushes:
+
+- **Feed stock low/out** (#6's store): when a feed line drops to 7 days
+  or less at last week's use, 2 bags or less, or runs out. Pushed again
+  every 3 days while it stays low, or sooner if it runs out.
+- **Withdrawal period over**: on the day eggs/meat from a dewormed or
+  treated batch are safe to sell again. Needed vitamin/supplement records
+  to move from on-phone only to the server (`/batches/{id}/supplements`).
+
+Push only, no email, and each can be turned off with its existing
+Settings switch. The risk: phones have one notifications switch per app,
+so a farmer annoyed by these can block vaccination reminders along with
+them. Only alerts about something that goes wrong if ignored get pushed;
+activity updates stay in-app. Neither alert came from a farmer interview.
+
+---
+
+## 9. Sales and Income & Expenses (24/11/2026)
+
+#5's summary became a Income & Expenses page (`/money`): income vs expenses
+by category, this week or this month, plus the sales behind the income.
+Sales are recorded separately from daily egg collection: birds (by type,
+from a batch, lowering its birds alive) or eggs (small/medium/large/jumbo,
+by crate or piece). Founder-directed, not interview-validated; the egg
+size grades in particular are an assumption to check with a farmer.
+
+---
+
+## 10. Vaccine and vitamin store (25/11/2026)
+
+The Store page's Vaccines and Vitamins tabs are for what a farmer buys in
+bulk and keeps (vials with doses per vial; packs with a pack size; price,
+expiry, supplier), the same way feed works. Giving one to a batch is
+still recorded on the batch, and can say it came from the store, which
+takes the vials/packs out and costs it at the price paid. Vaccines due and
+given now live on each batch and the dashboard banner, not in Store.
+Founder-directed, not interview-validated.
+
+---
+
 ## Explicitly out of scope for v1
 
 Insurance/compliance export, loan/credit documentation, voice-based data

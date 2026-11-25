@@ -86,3 +86,18 @@ email is the settled answer. Switching back has its own real cost: Cognito's
 username attribute (email vs. phone) is immutable, so a switch means
 destroying and recreating the user pool again, same as the original
 switch away from phone did.
+
+## 6. What was done about it (08/10/2026 and 24/11/2026)
+
+- **Login moved to email+password (08/10/2026).** No message is sent per
+  login any more, so neither the SES sandbox nor Apple's rejection can
+  stop someone signing in. Password reset uses Cognito's own built-in
+  email, not SES. Signup still sends a welcome email, but only to catch
+  mistyped addresses (a bounce flags `Farm.emailBounced`).
+- **Reminders also go out as phone push (24/11/2026).** Web Push uses the
+  browser's own notification service, so the SES sandbox and Apple's
+  domain rejection don't apply. Vaccination reminders and the logging
+  nudge go to push and email; feed-stock and withdrawal alerts are push
+  only. Push needs the farmer to allow notifications, and on iPhone the
+  app has to be on the home screen first.
+- Email is still sandboxed: only verified test addresses receive it.

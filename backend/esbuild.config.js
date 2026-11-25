@@ -24,6 +24,11 @@ const entries = {
   "scheduled-vaccination-reminders": "src/handlers/scheduled/vaccinationReminders.ts",
   "scheduled-entry-nudges": "src/handlers/scheduled/entryNudges.ts",
   "ses-events": "src/handlers/sesEvents/index.ts",
+  push: "src/handlers/push/index.ts",
+  supplements: "src/handlers/supplements/index.ts",
+  sales: "src/handlers/sales/index.ts",
+  "medicine-stock": "src/handlers/medicineStock/index.ts",
+  "scheduled-farm-alerts": "src/handlers/scheduled/farmAlerts.ts",
 };
 
 async function main() {

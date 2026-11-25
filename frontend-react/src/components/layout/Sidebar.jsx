@@ -6,6 +6,7 @@ import { useBatches } from '../../context/BatchContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { badgeCount } from '../../lib/notifications/format';
 import { InventoryIcon } from '../ui/InventoryIcon';
+import { MoneyIcon } from '../ui/MoneyIcon';
 import { BatchIcon } from '../ui/BatchIcon';
 import { SettingsIcon } from '../ui/SettingsIcon';
 import { HistoryIcon } from '../ui/HistoryIcon';
@@ -46,14 +47,26 @@ export function Sidebar({ isOpen, onClose }) {
   const farmLocation = farm?.location || 'Location not set';
   const farmAvatar = farm?.logoUrl || farm?.avatarUrl;
 
-  const totalPens = farm?.pens?.length || (new Set(batches.map((b) => b.penId || b.housing).filter(Boolean)).size) || 0;
+  // Farm at a glance: active batches only; birds alive is after deaths and sales.
   const activeBatches = batches.filter((b) => (b.status || 'active') !== 'closed');
-  const totalBirds = activeBatches.reduce((sum, b) => sum + (Number(b.currentBirds ?? b.birdCount) || 0), 0);
+  const sum = (fn) => activeBatches.reduce((t, b) => t + (Number(fn(b)) || 0), 0);
+  const birdsAlive = sum((b) => b.currentBirds ?? b.birdCount);
+  const placed = sum((b) => b.birdCount);
+  const deaths = sum((b) => b.birdsLost);
+  const pensUsed = new Set(activeBatches.map((b) => b.penId || b.housing).filter(Boolean)).size;
+  const pensTotal = farm?.pens?.length || pensUsed;
+  const glance = [
+    { label: 'Birds alive', value: birdsAlive.toLocaleString() },
+    { label: 'Active batches', value: activeBatches.length.toLocaleString() },
+    { label: 'Deaths so far', value: placed ? `${deaths.toLocaleString()} (${Math.round((deaths / placed) * 1000) / 10}%)` : '0' },
+    { label: 'Pens in use', value: `${pensUsed} of ${pensTotal}` },
+  ];
 
   const navItems = [
     { to: '/dashboard', label: 'Home', icon: FarmIcon },
     { to: '/batches', label: 'Batches', icon: BatchIcon },
-    { to: '/inventory', label: 'Inventory', icon: InventoryIcon },
+    { to: '/inventory', label: 'Store', icon: InventoryIcon },
+    { to: '/money', label: 'Income & Expenses', icon: MoneyIcon },
     { to: '/history', label: 'History', icon: HistoryIcon },
     { to: '/notifications', label: 'Notifications', icon: BellIcon, count: unreadCount },
     { to: '/settings', label: 'Settings', icon: SettingsIcon },
@@ -144,33 +157,16 @@ export function Sidebar({ isOpen, onClose }) {
                 role="menu"
               >
                
-                {/* Total Pens and Total Birds stats inside dropdown */}
+                <div className="px-2 pt-1 pb-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">Farm at a glance</div>
                 <div className="grid grid-cols-2 gap-2 px-1 mb-2">
-                  <div className="bg-white/[0.06] border border-white/[0.08] rounded-lg px-2.5 py-2 flex flex-col min-w-0">
-                    <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider truncate">
-                      Total Pens
-                    </span>
-                    <span className="text-xs font-bold text-white tabular-nums truncate mt-0.5">
-                      {loading ? (
-                        <span className="inline-block h-3 w-8 bg-white/15 rounded animate-pulse" />
-                      ) : (
-                        `${totalPens.toLocaleString()} ${totalPens === 1 ? 'Pen' : 'Pens'}`
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="bg-white/[0.06] border border-white/[0.08] rounded-lg px-2.5 py-2 flex flex-col min-w-0">
-                    <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider truncate">
-                      Total Birds
-                    </span>
-                    <span className="text-xs font-bold text-white tabular-nums truncate mt-0.5">
-                      {loading ? (
-                        <span className="inline-block h-3 w-10 bg-white/15 rounded animate-pulse" />
-                      ) : (
-                        `${totalBirds.toLocaleString()} ${totalBirds === 1 ? 'Bird' : 'Birds'}`
-                      )}
-                    </span>
-                  </div>
+                  {glance.map((g) => (
+                    <div key={g.label} className="bg-white/[0.06] border border-white/[0.08] rounded-lg px-2.5 py-2 flex flex-col min-w-0">
+                      <span className="text-xs font-medium text-stone-400 truncate">{g.label}</span>
+                      <span className="text-sm font-bold text-white tabular-nums truncate mt-0.5">
+                        {loading ? <span className="inline-block h-3 w-10 bg-white/15 rounded animate-pulse" /> : g.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 <NavLink
@@ -214,7 +210,7 @@ export function Sidebar({ isOpen, onClose }) {
                       <>
                         <span
                           aria-hidden="true"
-                          className="min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold leading-5 text-center tabular-nums bg-red-500 text-white"
+                          className="min-w-5 h-5 px-1.5 rounded-full text-xs font-bold leading-5 text-center tabular-nums bg-red-500 text-white"
                         >
                           {badgeCount(item.count)}
                         </span>

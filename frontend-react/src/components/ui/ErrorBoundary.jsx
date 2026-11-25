@@ -28,7 +28,7 @@ export class ErrorBoundary extends Component {
     if (!error) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-6">
+      <div className="min-h-screen bg-white flex items-center justify-center px-6 dark:bg-[#17191A]">
         <div className="max-w-md text-center">
           <span className="mx-auto w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center" aria-hidden="true">
             <TriangleAlert size={26} strokeWidth={1.75} className="text-[#17191A]" />
@@ -48,13 +48,13 @@ export class ErrorBoundary extends Component {
             <button
               type="button"
               onClick={() => window.location.assign('/dashboard')}
-              className="px-5 py-2.5 rounded-lg border border-[#E1E8EF] text-[#142033] text-sm font-semibold hover:bg-stone-50 transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-lg border border-[#E1E8EF] text-[#142033] text-sm font-semibold hover:bg-stone-50 transition-colors cursor-pointer dark:hover:bg-[#252A2E]"
             >
               Go to dashboard
             </button>
           </div>
           {/* The error itself, small, so it can be screenshotted and reported. */}
-          <p className="mt-6 text-[11px] text-[#70829B]/80 break-words font-mono">{String(error?.message || error)}</p>
+          <p className="mt-6 text-xs text-[#70829B]/80 break-words font-mono">{String(error?.message || error)}</p>
         </div>
       </div>
     );

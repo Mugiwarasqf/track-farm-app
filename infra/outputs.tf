@@ -20,7 +20,7 @@ output "reports_bucket" {
 }
 
 output "frontend_url" {
-  description = "The v1 frontend (simple/minimalistic, doubles as the API test console). See docs/10-build-plan.md §8, §10."
+  description = "The frontend via CloudFront's own *.cloudfront.net domain."
   value       = module.frontend.url
 }
 
@@ -63,7 +63,7 @@ output "custom_domain_api_url" {
 }
 
 output "ses_sender_email" {
-  description = "Check this inbox for SES's confirmation email after applying — it has to be clicked before OTP codes or notifications can send. See infra/modules/ses/main.tf."
+  description = "Check this inbox for SES's confirmation email after applying — it has to be clicked before emails can send. See infra/modules/ses/main.tf."
   value       = module.ses.sender_email
 }
 

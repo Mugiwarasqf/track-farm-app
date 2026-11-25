@@ -42,3 +42,9 @@ variable "acm_certificate_arn" {
   type        = string
   default     = null
 }
+
+variable "vapid_public_key" {
+  description = "Web Push public key, written into config.js so the app can turn on phone notifications."
+  type        = string
+  default     = ""
+}

@@ -14,7 +14,7 @@ output "domain_identity_arn" {
 }
 
 output "send_identity_arns" {
-  description = "Every identity ARN the app's SendEmail IAM policy needs: the domain identity (for the From address) plus every test recipient identity (for sending TO them during sandbox testing — see test_recipient_identity_arns' description for why that's required too). Pass this whole list to auth_triggers/api_lambdas' ses_identity_arns, not domain_identity_arn alone."
+  description = "Every identity ARN the app's SendEmail IAM policy needs: the domain identity (for the From address) plus every test recipient identity (for sending TO them during sandbox testing — see test_recipient_identity_arns' description for why that's required too). Pass this whole list to api_lambdas' ses_identity_arns, not domain_identity_arn alone."
   value       = concat([aws_ses_domain_identity.domain.arn], values({ for email, identity in aws_ses_email_identity.test_recipient : email => identity.arn }))
 }
 

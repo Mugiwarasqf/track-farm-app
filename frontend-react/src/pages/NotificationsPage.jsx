@@ -105,7 +105,7 @@ export function NotificationsPage() {
                 {c.label}
                 {unread > 0 && (
                   <span
-                    className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold leading-5 text-center tabular-nums ${
+                    className={`min-w-5 h-5 px-1.5 rounded-full text-xs font-bold leading-5 text-center tabular-nums ${
                       selected ? 'bg-[#17191A]/20 text-[#17191A]' : 'bg-red-500 text-white'
                     }`}
                   >
@@ -222,7 +222,7 @@ export function NotificationsPage() {
             <button
               type="button"
               onClick={() => setConfirmClear(false)}
-              className="h-9 px-4 rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
+              className="h-11 px-4 rounded-xl border border-stone-200 dark:border-[#2B3238] bg-white dark:bg-[#1E2124] text-sm font-semibold text-stone-700 dark:text-[#F5F7F5] hover:bg-stone-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
             >
               Cancel
             </button>

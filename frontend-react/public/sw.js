@@ -1,5 +1,5 @@
 /*
- * FarmBook service worker: lets the installed app open, and show the records
+ * TrackFarm service worker: lets the installed app open, and show the records
  * it has seen, without network.
  *
  * - Page loads: network first, falling back to the cached app shell
@@ -134,4 +134,50 @@ self.addEventListener('fetch', (event) => {
   if (/^\/(assets|icon|birds|images|onboarding)\//.test(url.pathname) || url.pathname === '/manifest.json') {
     event.respondWith(staleWhileRevalidate(request));
   }
+});
+
+// ---- Phone notifications ------------------------------------------------------
+// The server (backend/src/lib/push.ts) sends { title, body, url, tag }. A
+// newer notification with the same tag replaces the old one instead of
+// stacking, so a farmer never sees a pile of identical reminders.
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'TrackFarm';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: '/icon/app-icon-192.png',
+      badge: '/icon/app-icon-192.png',
+      tag: data.tag || 'trackfarm',
+      renotify: Boolean(data.tag),
+      data: { url: data.url || '/dashboard' },
+    })
+  );
+});
+
+// Tapping opens the page the notification is about. If TrackFarm is already
+// open, that window is reused rather than opening a second copy.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/dashboard', self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          await client.focus();
+          if ('navigate' in client) return client.navigate(target).catch(() => {});
+          return undefined;
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
 });

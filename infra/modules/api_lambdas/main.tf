@@ -11,6 +11,13 @@
 # user data at any scale.
 
 locals {
+  # Created by hand once per account, never by Terraform (keeps the private
+  # key out of state):
+  #   aws ssm put-parameter --type SecureString --name <this> --value <private key>
+  vapid_private_key_param = "/${var.project_name}/${var.environment}/vapid-private-key"
+}
+
+locals {
   # Handed to every function, whether or not it uses every table/id —
   # harmless (dynamo.ts only reads the vars it needs) and far simpler
   # than a bespoke env-var set per function.
@@ -27,9 +34,18 @@ locals {
     WEIGHT_LOGS_TABLE           = var.table_names["weight_logs"]
     SICK_BAY_TABLE              = var.table_names["sick_bay"]
     SUPPRESSED_EMAILS_TABLE     = var.table_names["suppressed_emails"]
-    COGNITO_USER_POOL_ID        = var.cognito_user_pool_id
-    COGNITO_CLIENT_ID           = var.cognito_client_id
-    SES_SENDER_EMAIL            = var.ses_sender_email
+    PUSH_SUBSCRIPTIONS_TABLE    = var.table_names["push_subscriptions"]
+    SUPPLEMENTS_TABLE           = var.table_names["supplements"]
+    SALES_TABLE                 = var.table_names["sales"]
+    MEDICINE_PURCHASES_TABLE    = var.table_names["medicine_purchases"]
+    # Phone notifications (backend/src/lib/push.ts). The public key is public
+    # by design; the private key stays in SSM and is read at runtime, so it
+    # never lands in Terraform state. Empty public key = push switched off.
+    VAPID_PUBLIC_KEY        = var.vapid_public_key
+    VAPID_PRIVATE_KEY_PARAM = local.vapid_private_key_param
+    COGNITO_USER_POOL_ID    = var.cognito_user_pool_id
+    COGNITO_CLIENT_ID       = var.cognito_client_id
+    SES_SENDER_EMAIL        = var.ses_sender_email
   }
 }
 
@@ -50,6 +66,7 @@ data "aws_iam_policy_document" "dynamo_rw" {
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:DeleteItem",
+      "dynamodb:BatchWriteItem",
       "dynamodb:Query",
       "dynamodb:Scan",
     ]
@@ -64,12 +81,23 @@ data "aws_iam_policy_document" "ses_send_email" {
   }
 }
 
+# The two scheduled reminder jobs read the push private key at cold start.
+# SecureString with the AWS-managed aws/ssm key, so no separate KMS grant.
+data "aws_iam_policy_document" "vapid_key_read" {
+  statement {
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:*:*:parameter${local.vapid_private_key_param}"]
+  }
+}
+
 data "aws_iam_policy_document" "cognito_admin" {
   statement {
     actions = [
       "cognito-idp:SignUp",
       "cognito-idp:AdminConfirmSignUp",
       "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminDeleteUser",
       "cognito-idp:InitiateAuth",
       "cognito-idp:ForgotPassword",
       "cognito-idp:ConfirmForgotPassword",
@@ -108,6 +136,11 @@ resource "aws_iam_role_policy" "dynamo_ses_dynamo" {
 resource "aws_iam_role_policy" "dynamo_ses_ses" {
   role   = aws_iam_role.dynamo_ses.name
   policy = data.aws_iam_policy_document.ses_send_email.json
+}
+
+resource "aws_iam_role_policy" "dynamo_ses_vapid" {
+  role   = aws_iam_role.dynamo_ses.name
+  policy = data.aws_iam_policy_document.vapid_key_read.json
 }
 
 resource "aws_iam_role" "cognito_only" {
@@ -246,7 +279,7 @@ resource "aws_lambda_function" "batches" {
   role             = aws_iam_role.dynamo.arn
   handler          = "index.handler"
   runtime          = "nodejs20.x"
-  timeout          = 10
+  timeout          = 30
   filename         = data.archive_file.batches.output_path
   source_code_hash = data.archive_file.batches.output_base64sha256
   environment { variables = local.common_env }
@@ -473,4 +506,97 @@ resource "aws_lambda_permission" "ses_events_sns" {
   function_name = aws_lambda_function.ses_events.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = var.ses_events_topic_arn
+}
+
+# POST /push/subscriptions and /push/subscriptions/remove — saves or removes
+# one phone for notifications (backend/src/handlers/push/index.ts). Only
+# touches DynamoDB; sending happens in the scheduled jobs above.
+data "archive_file" "push" {
+  type        = "zip"
+  source_dir  = "${var.backend_dist}/push"
+  output_path = "${path.module}/.build/push.zip"
+}
+
+resource "aws_lambda_function" "push" {
+  function_name    = "${var.project_name}-${var.environment}-push"
+  role             = aws_iam_role.dynamo.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 10
+  filename         = data.archive_file.push.output_path
+  source_code_hash = data.archive_file.push.output_base64sha256
+  environment { variables = local.common_env }
+}
+
+# GET/POST /batches/{id}/supplements (backend/src/handlers/supplements/).
+data "archive_file" "supplements" {
+  type        = "zip"
+  source_dir  = "${var.backend_dist}/supplements"
+  output_path = "${path.module}/.build/supplements.zip"
+}
+
+resource "aws_lambda_function" "supplements" {
+  function_name    = "${var.project_name}-${var.environment}-supplements"
+  role             = aws_iam_role.dynamo.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 10
+  filename         = data.archive_file.supplements.output_path
+  source_code_hash = data.archive_file.supplements.output_base64sha256
+  environment { variables = local.common_env }
+}
+
+# Daily feed-stock and withdrawal-period pushes (scheduled/farmAlerts.ts).
+# dynamo_ses role for its VAPID key read; it sends no email.
+data "archive_file" "scheduled_farm_alerts" {
+  type        = "zip"
+  source_dir  = "${var.backend_dist}/scheduled-farm-alerts"
+  output_path = "${path.module}/.build/scheduled-farm-alerts.zip"
+}
+
+resource "aws_lambda_function" "scheduled_farm_alerts" {
+  function_name    = "${var.project_name}-${var.environment}-scheduled-farm-alerts"
+  role             = aws_iam_role.dynamo_ses.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 60
+  filename         = data.archive_file.scheduled_farm_alerts.output_path
+  source_code_hash = data.archive_file.scheduled_farm_alerts.output_base64sha256
+  environment { variables = local.common_env }
+}
+
+# GET/POST /sales, DELETE /sales/{entryId} (backend/src/handlers/sales/).
+data "archive_file" "sales" {
+  type        = "zip"
+  source_dir  = "${var.backend_dist}/sales"
+  output_path = "${path.module}/.build/sales.zip"
+}
+
+resource "aws_lambda_function" "sales" {
+  function_name    = "${var.project_name}-${var.environment}-sales"
+  role             = aws_iam_role.dynamo.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 10
+  filename         = data.archive_file.sales.output_path
+  source_code_hash = data.archive_file.sales.output_base64sha256
+  environment { variables = local.common_env }
+}
+
+# GET/POST /medicine-stock (backend/src/handlers/medicineStock/).
+data "archive_file" "medicine_stock" {
+  type        = "zip"
+  source_dir  = "${var.backend_dist}/medicine-stock"
+  output_path = "${path.module}/.build/medicine-stock.zip"
+}
+
+resource "aws_lambda_function" "medicine_stock" {
+  function_name    = "${var.project_name}-${var.environment}-medicine-stock"
+  role             = aws_iam_role.dynamo.arn
+  handler          = "index.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 10
+  filename         = data.archive_file.medicine_stock.output_path
+  source_code_hash = data.archive_file.medicine_stock.output_base64sha256
+  environment { variables = local.common_env }
 }

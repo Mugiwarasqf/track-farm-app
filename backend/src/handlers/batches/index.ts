@@ -1,11 +1,12 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { DeleteCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
+import { BatchWriteCommand, DeleteCommand, GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, queryAll, tables } from "../../lib/dynamo";
 import { badRequest, created, farmIdFromEvent, notFound, ok } from "../../lib/http";
 import { newId } from "../../lib/ids";
 import { logger } from "../../lib/logger";
 import { pickOptional } from "../../lib/optionalFields";
 import type { Batch, BatchStatus } from "../../lib/types";
+import { birdSalesByBatch, birdsLost, flockCount } from "../../lib/flock";
 
 export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   const farmId = farmIdFromEvent(event);
@@ -13,14 +14,22 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
   const batchId = event.pathParameters?.id;
 
   if (method === "GET") {
-    const result = await ddb.send(
-      new QueryCommand({
+    const [batches, sold] = await Promise.all([
+      queryAll({
         TableName: tables.batches,
         KeyConditionExpression: "farmId = :farmId",
         ExpressionAttributeValues: { ":farmId": farmId },
-      })
+      }),
+      birdSalesByBatch(farmId),
+    ]);
+    // Birds alive on every batch, so every screen shows the same number.
+    const withCounts = await Promise.all(
+      batches.map(async (b) => ({
+        ...b,
+        ...flockCount(b.birdCount, await birdsLost(b.batchId), sold.get(b.batchId) ?? 0),
+      }))
     );
-    return ok({ batches: result.Items ?? [] });
+    return ok({ batches: withCounts });
   }
 
   if (method === "POST") {
@@ -150,14 +159,71 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
 
   if (method === "DELETE") {
     if (!batchId) return badRequest("batch id is required in the path");
-    await ddb.send(
-      new DeleteCommand({
-        TableName: tables.batches,
-        Key: { farmId, batchId },
-      })
-    );
-    return ok({ deleted: true, batchId });
+    const existing = await ddb.send(new GetCommand({ TableName: tables.batches, Key: { farmId, batchId } }));
+    if (!existing.Item) return notFound("batch not found");
+
+    // Records first, batch last: a failure part-way leaves the batch in
+    // place so the farmer can retry, never orphaned records.
+    let removed = 0;
+    for (const { table, sortKey } of CHILD_TABLES()) {
+      removed += await deleteAllForBatch(table, sortKey, batchId);
+    }
+    removed += await deleteBatchSales(farmId, batchId);
+    await ddb.send(new DeleteCommand({ TableName: tables.batches, Key: { farmId, batchId } }));
+    logger.info("batch_deleted", { farmId, batchId, recordsRemoved: removed });
+    return ok({ deleted: true, batchId, recordsRemoved: removed });
   }
 
   return notFound(`unsupported method ${method} for /batches`);
+}
+
+// Every batch-keyed table and its sort key. A function so tables.* is read
+// at call time (env vars), same as everywhere else.
+const CHILD_TABLES = () => [
+  { table: tables.mortalityLogs, sortKey: "entryId" },
+  { table: tables.feedLogs, sortKey: "entryId" },
+  { table: tables.eggLogs, sortKey: "entryId" },
+  { table: tables.weightLogs, sortKey: "entryId" },
+  { table: tables.vaccinationRecords, sortKey: "entryId" },
+  { table: tables.vaccinationSchedules, sortKey: "scheduleId" },
+  { table: tables.sickBay, sortKey: "caseId" },
+  { table: tables.supplements, sortKey: "entryId" },
+];
+
+async function deleteAllForBatch(table: string, sortKey: string, batchId: string): Promise<number> {
+  const keys = await queryAll({
+    TableName: table,
+    KeyConditionExpression: "batchId = :b",
+    ExpressionAttributeValues: { ":b": batchId },
+    ProjectionExpression: "#s",
+    ExpressionAttributeNames: { "#s": sortKey },
+  });
+  for (let i = 0; i < keys.length; i += 25) {
+    let requests: any[] = keys.slice(i, i + 25).map((k) => ({
+      DeleteRequest: { Key: { batchId, [sortKey]: k[sortKey] } },
+    }));
+    // BatchWrite can hand some back under load; retry those with a short backoff.
+    for (let attempt = 0; requests.length > 0; attempt++) {
+      if (attempt > 5) throw new Error(`could not delete all records from ${table}`);
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 100 * 2 ** attempt));
+      const res = await ddb.send(new BatchWriteCommand({ RequestItems: { [table]: requests } }));
+      requests = res.UnprocessedItems?.[table] ?? [];
+    }
+  }
+  return keys.length;
+}
+
+// Sales are farm-keyed, so the batch's ones are found by filter.
+async function deleteBatchSales(farmId: string, batchId: string): Promise<number> {
+  const sales = await queryAll({
+    TableName: tables.sales,
+    KeyConditionExpression: "farmId = :f",
+    FilterExpression: "batchId = :b",
+    ExpressionAttributeValues: { ":f": farmId, ":b": batchId },
+    ProjectionExpression: "entryId",
+  });
+  for (const s of sales) {
+    await ddb.send(new DeleteCommand({ TableName: tables.sales, Key: { farmId, entryId: s.entryId } }));
+  }
+  return sales.length;
 }

@@ -40,12 +40,12 @@ export function BatchCreatedModal({ batch, vaccinations, failedVaccinations, onO
       <Confetti />
       <div className="absolute inset-0 bg-[#17191A]/55 backdrop-blur-sm celebrate-fade" onClick={onOpenBatch} />
 
-      <div className="relative w-full sm:max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden celebrate-rise">
+      <div className="relative w-full sm:max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden celebrate-rise dark:bg-[#17191A]">
         {/* Photo header with the check badge overlapping it */}
-        <div className="relative h-32 bg-stone-100">
+        <div className="relative h-32 bg-stone-100 dark:bg-[#2B3238]">
           <img src={batchImage(batch)} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
-          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-white/90 text-[11px] font-semibold text-[#17191A]">
+          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-white/90 text-xs font-semibold text-[#17191A]">
             {birdTypeLabel(batch.type)}
           </span>
         </div>
@@ -56,7 +56,7 @@ export function BatchCreatedModal({ batch, vaccinations, failedVaccinations, onO
         </div>
 
         <div className="px-6 pt-4 pb-6 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4D6600]">Batch created</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4D6600]">Batch created</p>
           <h2 id="batch-created-title" className="mt-1.5 text-2xl font-semibold text-[#142033] font-heading">
             {batch.name} is ready
           </h2>
@@ -64,8 +64,8 @@ export function BatchCreatedModal({ batch, vaccinations, failedVaccinations, onO
 
           <dl className="mt-5 grid grid-cols-2 gap-px rounded-lg overflow-hidden border border-[#E1E8EF] bg-[#E1E8EF] text-left">
             {facts.map((f) => (
-              <div key={f.label} className="bg-white px-3.5 py-2.5">
-                <dt className="text-[11px] text-[#70829B]">{f.label}</dt>
+              <div key={f.label} className="bg-white px-3.5 py-2.5 dark:bg-[#17191A]">
+                <dt className="text-xs text-[#70829B]">{f.label}</dt>
                 <dd className="text-sm font-semibold text-[#142033] truncate">{f.value}</dd>
               </div>
             ))}
@@ -83,7 +83,7 @@ export function BatchCreatedModal({ batch, vaccinations, failedVaccinations, onO
             <button
               type="button"
               onClick={onDashboard}
-              className="flex-1 px-4 py-3 rounded-lg border border-[#E1E8EF] text-sm font-semibold text-[#142033] hover:bg-stone-50 transition-colors cursor-pointer"
+              className="flex-1 px-4 py-3 rounded-lg border border-[#E1E8EF] text-sm font-semibold text-[#142033] hover:bg-stone-50 transition-colors cursor-pointer dark:hover:bg-[#252A2E]"
             >
               Back to dashboard
             </button>

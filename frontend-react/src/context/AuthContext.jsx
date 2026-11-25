@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { getTokens, setTokens, clearTokens, clearFarmProfile } from '../api/client';
 import { clearOfflineRecords } from '../lib/pwa';
+import { removePushOnLogout } from '../lib/push';
 import { signup as apiSignup, login as apiLogin, requestPasswordReset, confirmPasswordReset } from '../api/auth';
 import { getFarm } from '../api/farms';
 import { setCustomBirdTypes } from '../lib/batch';
@@ -198,7 +199,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Stop this phone getting the farm's reminders. Needs the login token,
+    // so it runs first; capped at ~3s so a missing network never blocks it.
+    await removePushOnLogout();
     clearTokens();
     clearFarmProfile();
     clearOfflineRecords();

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, Check, AlertTriangle, PackagePlus, Sparkles } from 'lucide-react';
+import { NairaInput } from './NairaInput';
 import { useToast } from './Toast';
 import { useBatches } from '../../context/BatchContext';
 import { createLog } from '../../api/logs';
@@ -194,7 +195,7 @@ export function FeedUsageModal({ isOpen, onClose, onSaved, defaultBatchId = '', 
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-stone-500 dark:text-[#94A3B8]">
+                        <div className="text-xs text-stone-500 dark:text-[#94A3B8]">
                           {l.bagSizeKg}kg bags{l.avgPrice ? ` · about ${formatNaira(l.avgPrice)}/bag` : ''}
                         </div>
                       </div>
@@ -202,7 +203,7 @@ export function FeedUsageModal({ isOpen, onClose, onSaved, defaultBatchId = '', 
                         <div className={`text-sm font-extrabold ${l.left <= 0 ? 'text-rose-600 dark:text-[#FB7185]' : l.status === 'low' ? 'text-amber-700 dark:text-[#FCD34D]' : 'text-stone-950 dark:text-[#F5F7F5]'}`}>
                           {l.left <= 0 ? 'Out of stock' : formatBags(l.left)}
                         </div>
-                        {l.left > 0 && <div className="text-[10px] text-stone-400 dark:text-[#64748B]">left</div>}
+                        {l.left > 0 && <div className="text-xs text-stone-400 dark:text-[#64748B]">left</div>}
                       </div>
                     </button>
                   );
@@ -240,8 +241,8 @@ export function FeedUsageModal({ isOpen, onClose, onSaved, defaultBatchId = '', 
                   </select>
                 </div>
                 <div>
-                  <label className={LABEL}>Cost (₦)</label>
-                  <input type="number" min="0" inputMode="numeric" value={offCost} onChange={(e) => setOffCost(e.target.value)} className={FIELD} placeholder="Total paid" />
+                  <label className={LABEL}>Cost</label>
+                  <NairaInput value={offCost} onChange={setOffCost} className={FIELD} placeholder="Total paid" />
                 </div>
               </div>
             </div>
@@ -278,13 +279,13 @@ export function FeedUsageModal({ isOpen, onClose, onSaved, defaultBatchId = '', 
                 ))}
               </div>
               {expected != null && (
-                <p className="text-[11px] text-stone-500 dark:text-[#94A3B8] mt-2">
+                <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-2">
                   Rough guide: {Number(batch.birdCount).toLocaleString()} birds on {findFeedType(feedTypeLabel)?.label.toLowerCase()} eat about{' '}
                   <strong className="text-stone-800 dark:text-[#F5F7F5]">{formatBags(Math.round(expected * 4) / 4 || 0.25)} a day</strong>.
                 </p>
               )}
               {overdraw && (
-                <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-800 dark:text-[#FCD34D] bg-amber-50 dark:bg-[#261B06] border border-amber-200 dark:border-[#4A350C] rounded-xl px-3 py-2">
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-800 dark:text-[#FCD34D] bg-amber-50 dark:bg-[#261B06] border border-amber-200 dark:border-[#4A350C] rounded-xl px-3 py-2">
                   <AlertTriangle size={13} className="shrink-0 mt-px" />
                   Only {formatBags(Math.max(line.left, 0))} left of this feed. If you bought more, add it to the store so the count stays right.
                 </p>

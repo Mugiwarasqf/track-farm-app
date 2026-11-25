@@ -1,9 +1,9 @@
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from "aws-lambda";
-import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb } from "./dynamo";
+import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, queryAll } from "./dynamo";
 import { badRequest, created, farmIdFromEvent, notFound, ok } from "./http";
 import { entryId } from "./ids";
-import { checkRecordDateOf } from "./dates";
+import { checkRecordDateOf, isIsoDay } from "./dates";
 import { batchBelongsToFarm } from "./batchAuth";
 
 /**
@@ -15,6 +15,8 @@ import { batchBelongsToFarm } from "./batchAuth";
 export function makeLogResourceHandler<TExtra extends object>(opts: {
   tableName: string;
   buildItem: (batchId: string, body: any) => TExtra | { error: string };
+  /** Allow future dates (planned records). The date format is still checked. */
+  allowFutureDate?: boolean;
 }) {
   return async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
     const batchId = event.pathParameters?.id;
@@ -25,18 +27,15 @@ export function makeLogResourceHandler<TExtra extends object>(opts: {
     if (!(await batchBelongsToFarm(farmId, batchId))) return notFound("batch not found");
 
     if (method === "GET") {
-      const result = await ddb.send(
-        new QueryCommand({
-          TableName: opts.tableName,
-          KeyConditionExpression: "batchId = :batchId",
-          ExpressionAttributeValues: { ":batchId": batchId },
-          ScanIndexForward: false, // entryId is time-prefixed, so this is newest-first
-          // Strongly consistent: a page opened right after a save (e.g.
-          // Inventory after logging eggs) must see the entry just written.
-          ConsistentRead: true,
-        })
-      );
-      const items = result.Items ?? [];
+      const items = await queryAll({
+        TableName: opts.tableName,
+        KeyConditionExpression: "batchId = :batchId",
+        ExpressionAttributeValues: { ":batchId": batchId },
+        ScanIndexForward: false, // entryId is time-prefixed, so this is newest-first
+        // Strongly consistent: a page opened right after a save (e.g.
+        // Inventory after logging eggs) must see the entry just written.
+        ConsistentRead: true,
+      });
       return ok({ entries: items, logs: items });
     }
 
@@ -44,7 +43,9 @@ export function makeLogResourceHandler<TExtra extends object>(opts: {
       const body = JSON.parse(event.body ?? "{}");
       const fields = opts.buildItem(batchId, body);
       if ("error" in fields) return badRequest(fields.error);
-      const dateError = checkRecordDateOf(fields as Record<string, unknown>);
+      const dateError = opts.allowFutureDate
+        ? isIsoDay((fields as Record<string, unknown>).date) ? null : "date must be a date in YYYY-MM-DD format"
+        : checkRecordDateOf(fields as Record<string, unknown>);
       if (dateError) return badRequest(dateError);
 
       const item = {

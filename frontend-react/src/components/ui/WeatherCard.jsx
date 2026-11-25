@@ -26,7 +26,7 @@ function DayTile({ title, day, tone }) {
         <span className="text-sm text-[#70829B] dark:text-[#94A3B8] tabular-nums">{deg(day.min)}</span>
       </div>
       {day.rainChance != null && (
-        <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] mt-1">
+        <div className="text-xs text-[#70829B] dark:text-[#94A3B8] mt-1">
           <span role="img" aria-label="Chance of rain">💧</span> {day.rainChance}% chance of rain
         </div>
       )}
@@ -194,7 +194,7 @@ export function WeatherCard({ location, onUpdate }) {
               {now.emoji}
             </span>
             <div className="min-w-0">
-              <div className={`text-[11px] font-medium uppercase tracking-[0.08em] ${night ? 'text-white/60' : 'text-[#70829B] dark:text-[#94A3B8]'}`}>
+              <div className={`text-xs font-medium uppercase tracking-[0.08em] ${night ? 'text-white/60' : 'text-[#70829B] dark:text-[#94A3B8]'}`}>
                 Right now
               </div>
               <div className="text-4xl font-semibold font-heading leading-none mt-1 tabular-nums">

@@ -1,6 +1,8 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import {
   AdminConfirmSignUpCommand,
+  AdminDeleteUserCommand,
+  AdminGetUserCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
@@ -8,12 +10,13 @@ import {
   UsernameExistsException,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { ddb, tables } from "../../lib/dynamo";
 import { badRequest, ok, serverError } from "../../lib/http";
 import { newId } from "../../lib/ids";
 import { logger } from "../../lib/logger";
 import { isSuppressed } from "../../lib/suppression";
+import { sesMessage, welcomeEmail } from "../../lib/emailTemplates";
 
 const cognito = new CognitoIdentityProviderClient({});
 const ses = new SESClient({});
@@ -58,55 +61,63 @@ export async function handler(event: APIGatewayProxyEventV2) {
 
   let userId: string;
   try {
-    const signUp = await cognito.send(
-      new SignUpCommand({
-        ClientId: CLIENT_ID,
-        Username: email,
-        Password: password,
-        UserAttributes: [{ Name: "email", Value: email }],
-      })
-    );
-    userId = signUp.UserSub!;
+    userId = await cognitoSignUp(email, password);
   } catch (err: any) {
-    if (err instanceof UsernameExistsException || err?.name === "UsernameExistsException") {
+    if (!(err instanceof UsernameExistsException || err?.name === "UsernameExistsException")) {
+      logger.error("signup_failed", { email, code: err.name, message: err.message });
+      return serverError(err.message || "Failed to create account", { code: err.name });
+    }
+    // An earlier signup that died half-way leaves an account with no farm.
+    // Replace it rather than locking this email out for good.
+    if (!(await isUnfinishedAccount(email))) {
       return badRequest("an account with this email already exists");
     }
-    logger.error("signup_failed", { email, code: err.name, message: err.message });
-    return serverError(err.message || "Failed to create account", { code: err.name });
+    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: email }));
+    logger.warn("signup_replaced_unfinished_account", { email });
+    userId = await cognitoSignUp(email, password);
   }
 
   const farmId = newId();
+  try {
+    await ddb.send(
+      new PutCommand({
+        TableName: tables.farms,
+        Item: { farmId, ownerEmail: email, name: "My Farm", createdAt: new Date().toISOString() },
+      })
+    );
+    await ddb.send(
+      new PutCommand({
+        TableName: tables.users,
+        Item: { userId, email, farmId, trialStatus: "trial", trialStartedAt: new Date().toISOString() },
+      })
+    );
+    await cognito.send(new AdminConfirmSignUpCommand({ UserPoolId: USER_POOL_ID, Username: email }));
+    await cognito.send(
+      new AdminUpdateUserAttributesCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+        UserAttributes: [
+          { Name: "custom:farmId", Value: farmId },
+          // Not actually verified (no code was sent/clicked) -- marked true
+          // anyway so Cognito's own ForgotPassword flow (which requires a
+          // verified recovery channel) works. The welcome email below is
+          // this signup's real, independent check on whether the address
+          // actually works.
+          { Name: "email_verified", Value: "true" },
+        ],
+      })
+    );
+  } catch (err: any) {
+    // Undo everything so the farmer can simply try again.
+    logger.error("signup_provisioning_failed", { email, farmId, code: err.name, message: err.message });
+    await Promise.allSettled([
+      cognito.send(new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: email })),
+      ddb.send(new DeleteCommand({ TableName: tables.farms, Key: { farmId } })),
+      ddb.send(new DeleteCommand({ TableName: tables.users, Key: { userId } })),
+    ]);
+    return serverError("Could not finish creating your account. Please try again.");
+  }
   logger.info("new_user_provisioned", { userId, email, farmId });
-
-  await ddb.send(
-    new PutCommand({
-      TableName: tables.farms,
-      Item: { farmId, ownerEmail: email, name: "My Farm", createdAt: new Date().toISOString() },
-    })
-  );
-  await ddb.send(
-    new PutCommand({
-      TableName: tables.users,
-      Item: { userId, email, farmId, trialStatus: "trial", trialStartedAt: new Date().toISOString() },
-    })
-  );
-
-  await cognito.send(new AdminConfirmSignUpCommand({ UserPoolId: USER_POOL_ID, Username: email }));
-  await cognito.send(
-    new AdminUpdateUserAttributesCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: email,
-      UserAttributes: [
-        { Name: "custom:farmId", Value: farmId },
-        // Not actually verified (no code was sent/clicked) -- marked true
-        // anyway so Cognito's own ForgotPassword flow (which requires a
-        // verified recovery channel) works. The welcome email below is
-        // this signup's real, independent check on whether the address
-        // actually works.
-        { Name: "email_verified", Value: "true" },
-      ],
-    })
-  );
 
   // Awaited, not truly backgrounded: the account is already fully usable
   // below regardless of whether this send succeeds, and a failure here is
@@ -119,12 +130,7 @@ export async function handler(event: APIGatewayProxyEventV2) {
         new SendEmailCommand({
           Source: SENDER_EMAIL,
           Destination: { ToAddresses: [email] },
-          Message: {
-            Subject: { Data: "Welcome to TrackFarm" },
-            Body: {
-              Text: { Data: "Your TrackFarm account is ready. Log in any time to start tracking your farm." },
-            },
-          },
+          Message: sesMessage(welcomeEmail()),
         })
       );
     } catch (err: any) {
@@ -147,4 +153,23 @@ export async function handler(event: APIGatewayProxyEventV2) {
     refreshToken: auth.AuthenticationResult!.RefreshToken,
     farmId,
   });
+}
+
+async function cognitoSignUp(email: string, password: string): Promise<string> {
+  const result = await cognito.send(
+    new SignUpCommand({
+      ClientId: CLIENT_ID,
+      Username: email,
+      Password: password,
+      UserAttributes: [{ Name: "email", Value: email }],
+    })
+  );
+  return result.UserSub!;
+}
+
+/** Unconfirmed, or confirmed but never given a farm: nothing to lose. */
+async function isUnfinishedAccount(email: string): Promise<boolean> {
+  const user = await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }));
+  const hasFarm = (user.UserAttributes ?? []).some((a) => a.Name === "custom:farmId" && a.Value);
+  return user.UserStatus === "UNCONFIRMED" || !hasFarm;
 }

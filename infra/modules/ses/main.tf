@@ -1,5 +1,5 @@
 # var.sender_email (e.g. noreply@trackfarm.cc) is just the literal From
-# address the app sends with — createAuthChallenge.ts, vaccinationReminders.ts,
+# address the app sends with — auth/signup.ts, vaccinationReminders.ts,
 # and entryNudges.ts (backend/src/handlers/) all read it via SES_SENDER_EMAIL.
 # It is NOT its own SES identity: sending authority comes entirely from the
 # domain identity below (aws_ses_domain_identity.domain) once that's
@@ -52,7 +52,7 @@ resource "aws_ses_domain_dkim" "domain" {
 # sending handlers stop emailing an address that permanently bounced or
 # complained. Not wired to the test_recipient identity above since nothing
 # is ever actually sent "to" it for real — it exists purely so its own
-# inbox can receive OTPs/reminders during sandbox testing.
+# inbox can receive emails during sandbox testing.
 resource "aws_sns_topic" "ses_events" {
   name = "${var.project_name}-${var.environment}-ses-events"
 }

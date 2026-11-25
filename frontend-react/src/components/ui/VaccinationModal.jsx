@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X, ChevronLeft, ShieldCheck, Check, ArrowRight, Info, CalendarClock, ClipboardCheck } from 'lucide-react';
+import { NairaInput } from './NairaInput';
+import { useMedicineStock } from '../../lib/useMedicineStock';
 import { CalendarPicker } from './CalendarPicker';
 import { useToast } from './Toast';
 import { useBatches } from '../../context/BatchContext';
@@ -88,6 +90,8 @@ export function VaccinationModal({
   const [lotNumber, setLotNumber] = useState('');
   const [givenBy, setGivenBy] = useState('');
   const [cost, setCost] = useState('');
+  const [stockKey, setStockKey] = useState('');
+  const { lines: medicineLines } = useMedicineStock({ enabled: isOpen });
   const [notes, setNotes] = useState('');
   const [scheduleId, setScheduleId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -103,13 +107,14 @@ export function VaccinationModal({
     setBatchId(startBatchId);
     setBirds(startBatch?.birdCount ? String(startBatch.birdCount) : '');
     setDate(prefill?.date || '');
-    setVaccineName(prefill?.vaccineName || '');
+    setVaccineName(findVaccine(prefill?.vaccineName)?.name || prefill?.vaccineName || '');
     setCustomName('');
     setDoseNumber(prefill?.doseNumber || '');
     setDosesPerVial(1000);
     setLotNumber('');
     setGivenBy('');
     setCost('');
+    setStockKey('');
     setNotes('');
     setScheduleId(prefill?.scheduleId || '');
     setSubmitting(false);
@@ -149,6 +154,16 @@ export function VaccinationModal({
   const vialsNeeded = birdCount > 0 ? Math.ceil(birdCount / dosesPerVial) : 0;
   const routeInfo = ROUTES[route];
   const isRecord = mode === 'record';
+  // Vaccines in the store, this vaccine first.
+  const vaccineStock = medicineLines
+    .filter((l) => l.kind === 'vaccine')
+    .sort((a, b) => (b.name === finalName) - (a.name === finalName) || (b.left > 0) - (a.left > 0));
+  const stockLine = vaccineStock.find((l) => l.key === stockKey) || null;
+  const chooseStock = (key) => {
+    setStockKey(key);
+    const line = vaccineStock.find((l) => l.key === key);
+    if (line?.dosesPerVial) setDosesPerVial(line.dosesPerVial);
+  };
 
   // Only this batch's appointments on the calendar, when a batch is chosen.
   const calendarEvents = batchId ? events.filter((e) => !e.batchId || e.batchId === batchId) : events;
@@ -189,7 +204,12 @@ export function VaccinationModal({
           ...(birdCount ? { birdsVaccinated: birdCount, vialsUsed: vialsNeeded } : {}),
           ...(lotNumber.trim() ? { lotNumber: lotNumber.trim() } : {}),
           ...(givenBy ? { administeredBy: givenBy } : {}),
-          ...(cost ? { costNaira: Number(cost) } : {}),
+          ...(stockKey ? { stockKey } : {}),
+          ...(cost
+            ? { costNaira: Number(cost) }
+            : stockLine?.avgPrice && vialsNeeded
+            ? { costNaira: Math.round(vialsNeeded * stockLine.avgPrice) }
+            : {}),
         }
       : {
           ...shared,
@@ -304,7 +324,7 @@ export function VaccinationModal({
                   {isRecord ? 'Given on ' : 'Due on '}{formatDisplayDate(date)}
                 </span>
                 {!prefill?.date && (
-                  <button type="button" onClick={() => setStep(1)} className="ml-auto text-[11px] font-bold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer">
+                  <button type="button" onClick={() => setStep(1)} className="ml-auto text-xs font-bold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer">
                     Change
                   </button>
                 )}
@@ -361,7 +381,7 @@ export function VaccinationModal({
               </div>
 
               {routeInfo && (
-                <p className="text-[11px] leading-relaxed text-stone-500 dark:text-[#94A3B8] bg-white dark:bg-[#1E2124] border border-dashed border-stone-300 dark:border-[#2B3238] rounded-xl px-3.5 py-2.5">
+                <p className="text-xs leading-relaxed text-stone-500 dark:text-[#94A3B8] bg-white dark:bg-[#1E2124] border border-dashed border-stone-300 dark:border-[#2B3238] rounded-xl px-3.5 py-2.5">
                   {routeInfo.tip}
                 </p>
               )}
@@ -391,6 +411,23 @@ export function VaccinationModal({
 
               {isRecord ? (
                 <>
+                  {vaccineStock.length > 0 && (
+                    <div>
+                      <label className={LABEL}>Taken from your store?</label>
+                      <select value={stockKey} onChange={(e) => chooseStock(e.target.value)} className={`${FIELD} cursor-pointer`}>
+                        <option value="">No, bought for this batch</option>
+                        {vaccineStock.map((l) => (
+                          <option key={l.key} value={l.key}>{l.label} ({Math.max(l.left, 0)} vial{l.left === 1 ? '' : 's'} left)</option>
+                        ))}
+                      </select>
+                      {stockLine && vialsNeeded > Math.max(stockLine.left, 0) && (
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">More than the {Math.max(stockLine.left, 0)} vials in your store.</p>
+                      )}
+                      {stockLine?.avgPrice && !cost && vialsNeeded > 0 && (
+                        <p className="text-xs text-stone-500 dark:text-[#94A3B8] mt-1">Cost worked out from your store: ₦{Math.round(vialsNeeded * stockLine.avgPrice).toLocaleString()}</p>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <label className={LABEL}>Given by</label>
                     <Pills options={GIVEN_BY} value={givenBy} onChange={setGivenBy} />
@@ -401,8 +438,8 @@ export function VaccinationModal({
                       <input type="text" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} className={FIELD} placeholder="On the vial label" />
                     </div>
                     <div>
-                      <label className={LABEL}>Cost (₦) <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
-                      <input type="number" min="0" inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} className={FIELD} placeholder="e.g. 4500" />
+                      <label className={LABEL}>Cost <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
+                      <NairaInput value={cost} onChange={setCost} className={FIELD} placeholder="₦4,500" />
                     </div>
                   </div>
                 </>
@@ -413,7 +450,7 @@ export function VaccinationModal({
                   </div>
                   <div className="text-xs text-stone-600 dark:text-[#94A3B8]">
                     <div className="font-bold text-stone-900 dark:text-[#F5F7F5]">Reminder</div>
-                    You will get an email reminder 3 days before and again on the day.
+                    You will get a reminder on your phone (and by email) 3 days before and again on the day.
                   </div>
                 </div>
               )}

@@ -33,24 +33,13 @@ variable "aws_account_id" {
   type        = string
 }
 
-# Placeholder trial length — docs/10-build-plan.md §7 is explicit that the
-# real number comes from a second payment survey once the trial phase has
-# traction, not from a guess made while scaffolding infra. Kept as a
-# variable rather than hard-coded so it never needs a schema/code change
-# to update.
-variable "trial_length_days" {
-  description = "Placeholder free trial length in days — see docs/10-build-plan.md §7. Not a validated number yet."
-  type        = number
-  default     = 30
-}
-
 # The app's actual From address (e.g. noreply@trackfarm.cc) — not its own
 # SES identity, authorized by the domain identity (var.domain_name) once
 # that's verified. Not an inbox anyone needs to check; see
 # infra/modules/ses/main.tf's header comment for the bug this caused when
 # it used to double as the one below's value too.
 variable "ses_sender_email" {
-  description = "Literal From address the app sends OTP codes/notifications with."
+  description = "Literal From address the app sends welcome and reminder emails with."
   type        = string
 }
 
@@ -97,4 +86,10 @@ variable "deploy_custom_domain" {
   description = "Whether THIS environment currently owns var.domain_name's DNS and should request/use the custom-domain ACM certs, CloudFront alias, and API Gateway custom domain. Exactly one environment should have this true at a time."
   type        = bool
   default     = false
+}
+
+variable "vapid_public_key" {
+  description = "Web Push (VAPID) public key for phone notifications. Not secret. Leave empty to keep phone notifications off. The matching private key goes in SSM at /<project_name>/<environment>/vapid-private-key."
+  type        = string
+  default     = ""
 }

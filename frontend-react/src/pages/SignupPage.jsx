@@ -253,7 +253,7 @@ export function SignupPage({ onBack }) {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                <p className={`text-[11px] ${pwError ? 'text-amber-700' : 'text-neutral-400'}`}>
+                <p className={`text-xs ${pwError ? 'text-amber-700' : 'text-neutral-400'}`}>
                   {pwError || 'At least 8 characters, with a letter and a number'}
                 </p>
               </div>
@@ -293,7 +293,7 @@ export function SignupPage({ onBack }) {
                   </button>
                 </div>
                 {confirmError && (
-                  <p id="signup-confirm-password-hint" className="text-[11px] text-red-600" role="alert">
+                  <p id="signup-confirm-password-hint" className="text-xs text-red-600" role="alert">
                     {confirmError}
                   </p>
                 )}

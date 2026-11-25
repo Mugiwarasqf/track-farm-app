@@ -179,7 +179,7 @@ function BatchCard({ batch, currentBirds, eggsPerDay, logsLoaded, onOpen }) {
         />
         <div className="absolute top-2.5 right-2.5">
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold backdrop-blur-md shadow-xs border ${
+            className={`px-2.5 py-0.5 rounded-full text-xs font-semibold backdrop-blur-md shadow-xs border ${
               eggsBatch
                 ? 'bg-[#EFFFC4]/95 text-[#4D6600] border-[#E3F5A8] dark:bg-[#20361C]/95 dark:text-[#DFFF83] dark:border-[#274220]'
                 : 'bg-[#E2ECFB]/95 text-[#2F6FD6] border-[#DCE7F7] dark:bg-[#152B47]/95 dark:text-[#60A5FA] dark:border-[#1E395F]'
@@ -210,7 +210,7 @@ function BatchCard({ batch, currentBirds, eggsPerDay, logsLoaded, onOpen }) {
           <div className="flex items-start gap-1.5 min-w-0">
             <BirdIcon size={14} className="mt-0.5 shrink-0 text-[#70829B] dark:text-[#94A3B8]" />
             <div className="min-w-0">
-              <div className="text-[10px] text-[#70829B] dark:text-[#94A3B8]">Birds</div>
+              <div className="text-xs text-[#70829B] dark:text-[#94A3B8]">Birds</div>
               <div className="text-xs sm:text-sm font-bold text-[#142033] dark:text-[#F5F7F5] tabular-nums truncate">
                 {logsLoaded ? currentBirds.toLocaleString() : <Skeleton className="h-4 w-12 mt-1" />}
               </div>
@@ -220,7 +220,7 @@ function BatchCard({ batch, currentBirds, eggsPerDay, logsLoaded, onOpen }) {
           <div className="flex items-start gap-1.5 min-w-0">
             <MetricIcon size={14} strokeWidth={2} className="mt-0.5 shrink-0 text-[#142033] dark:text-[#F5F7F5]" />
             <div className="min-w-0">
-              <div className="text-[10px] text-[#70829B] dark:text-[#94A3B8] truncate">{metric.label}</div>
+              <div className="text-xs text-[#70829B] dark:text-[#94A3B8] truncate">{metric.label}</div>
               <div className="text-xs sm:text-sm font-bold text-[#142033] dark:text-[#F5F7F5] truncate">
                 {metric.value ?? <Skeleton className="h-4 w-14 mt-1" />}
               </div>
@@ -351,7 +351,7 @@ export function DashboardPage() {
       const mortality = logsByBatch[b.batchId]?.mortality;
       if (!mortality) return Number(b.currentBirds ?? b.birdCount) || 0;
       const lost = mortality.reduce((s, m) => s + (Number(m.count) || 0), 0);
-      return Math.max(0, (Number(b.birdCount) || 0) - lost);
+      return Math.max(0, (Number(b.birdCount) || 0) - lost - (Number(b.birdsSoldToDate) || 0));
     },
     [logsByBatch]
   );
@@ -389,6 +389,15 @@ export function DashboardPage() {
     const upcoming = open.filter((s) => s.dueDate >= today).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     const overdue = schedules.filter((s) => s.dueDate && s.status !== 'done' && (s.status === 'missed' || s.dueDate < today));
     return { upcoming, overdue: overdue.length };
+  }, [activeBatches, logsByBatch, today]);
+
+  // Vaccines due in the next 3 days or overdue: the banner at the top.
+  const vaccinesDueSoon = useMemo(() => {
+    const names = Object.fromEntries(activeBatches.map((b) => [b.batchId, b.name]));
+    return activeBatches
+      .flatMap((b) => (logsByBatch[b.batchId]?.schedule || []).map((s) => ({ ...s, batchId: b.batchId, batchName: names[b.batchId] })))
+      .filter((s) => s.dueDate && s.status !== 'done' && daysUntil(s.dueDate, today) <= 3)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [activeBatches, logsByBatch, today]);
 
   // ---- batches -----------------------------------------------------------------
@@ -459,6 +468,11 @@ export function DashboardPage() {
 
   // ---- quick actions ---------------------------------------------------------------
   const [modal, setModal] = useState(null); // 'feed' | 'feedStock' | 'vaccine' | 'lossPicker'
+  const [vacPrefill, setVacPrefill] = useState(RECORD_PREFILL);
+  const markGiven = (s) => {
+    setVacPrefill({ mode: 'record', batchId: s.batchId, vaccineName: s.vaccineName, doseNumber: s.doseNumber, scheduleId: s.scheduleId, date: today });
+    setModal('vaccine');
+  };
   const healthEvents = useMemo(
     () =>
       buildHealthEvents({
@@ -544,7 +558,7 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm leading-tight">Create Batch</div>
-                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">Start a new flock</div>
+                  <div className="text-xs text-[#70829B] dark:text-[#94A3B8] font-normal">Start a new flock</div>
                 </div>
               </Link>
 
@@ -566,7 +580,7 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm leading-tight">Log Feed</div>
-                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                  <div className="text-xs text-[#70829B] dark:text-[#94A3B8] font-normal">
                     {noActive ? 'Needs an active batch' : 'Record feed usage'}
                   </div>
                 </div>
@@ -577,6 +591,7 @@ export function DashboardPage() {
                 disabled={noActive}
                 onClick={() => {
                   setQuickActionOpen(false);
+                  setVacPrefill(RECORD_PREFILL);
                   setModal('vaccine');
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors font-medium ${
@@ -590,7 +605,7 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm leading-tight">Record Vaccination</div>
-                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                  <div className="text-xs text-[#70829B] dark:text-[#94A3B8] font-normal">
                     {noActive ? 'Needs an active batch' : 'Update vaccination records'}
                   </div>
                 </div>
@@ -614,7 +629,7 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold text-sm leading-tight">Log Bird Loss</div>
-                  <div className="text-[11px] text-[#70829B] dark:text-[#94A3B8] font-normal">
+                  <div className="text-xs text-[#70829B] dark:text-[#94A3B8] font-normal">
                     {noActive ? 'Needs an active batch' : 'Record bird mortality'}
                   </div>
                 </div>
@@ -633,6 +648,40 @@ export function DashboardPage() {
         </div>
       )}
 
+
+      {/* Vaccines due soon: the most important thing on the farm this week */}
+      {vaccinesDueSoon.length > 0 && (
+        <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2 text-base font-bold text-amber-900 dark:text-amber-200">
+            <VaccineIcon size={20} />
+            {vaccinesDueSoon.length === 1 ? 'A vaccine is due' : `${vaccinesDueSoon.length} vaccines are due`}
+          </div>
+          {vaccinesDueSoon.map((s) => {
+            const days = daysUntil(s.dueDate, today);
+            const overdue = days < 0 || s.status === 'missed';
+            return (
+              <div key={s.scheduleId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl bg-white dark:bg-[#17191A] p-3 sm:p-4">
+                <div className="min-w-0">
+                  <div className="text-base font-semibold text-stone-950 dark:text-[#F5F7F5]">
+                    {s.vaccineName}{s.doseNumber ? ` · ${s.doseNumber}` : ''}
+                  </div>
+                  <div className={`text-sm ${overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-stone-600 dark:text-[#94A3B8]'}`}>
+                    {s.batchName} · {overdue ? `overdue by ${-days || 0} day${-days === 1 ? '' : 's'}` : days === 0 ? 'due today' : days === 1 ? 'due tomorrow' : `due in ${days} days`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => markGiven(s)}
+                  className="h-11 px-5 rounded-xl bg-[#DFFF83] hover:bg-[#C5E95A] text-[#17191A] text-sm font-bold transition-colors cursor-pointer shrink-0"
+                >
+                  Mark as given
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* 1. Your Batches Dedicated Rectangle Panel */}
       <section className="bg-[#f4f5f7] dark:bg-[#17191A] rounded-2xl border border-[#E1E8EF] dark:border-[#2B3238] shadow-[0_1px_3px_rgba(20,32,51,0.05)] p-4 sm:p-5 lg:p-6 transition-colors">
         <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5">
@@ -645,7 +694,7 @@ export function DashboardPage() {
                 Your Batches
               </h2>
               {activeBatches.length > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F7FFE0] text-[#4D6600] dark:bg-[#20361C] dark:text-[#DFFF83] border border-[#E3F5A8] dark:border-[#274220]">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F7FFE0] text-[#4D6600] dark:bg-[#20361C] dark:text-[#DFFF83] border border-[#E3F5A8] dark:border-[#274220]">
                   {activeBatches.length} {activeBatches.length === 1 ? 'Active' : 'Active'}
                 </span>
               )}
@@ -710,7 +759,7 @@ export function DashboardPage() {
               <span className="text-sm sm:text-base font-bold text-[#142033] dark:text-[#F5F7F5] group-hover:text-[#4D6600] dark:group-hover:text-[#DFFF83] transition-colors">
                 New Batch
               </span>
-              <span className="text-[11px] text-[#70829B] dark:text-[#94A3B8] mt-0.5 font-medium">
+              <span className="text-xs text-[#70829B] dark:text-[#94A3B8] mt-0.5 font-medium">
                 Start a new flock
               </span>
             </Link>
@@ -746,7 +795,7 @@ export function DashboardPage() {
             feed == null
               ? 'Feed store unavailable'
               : !feed.bought
-                ? 'Add feed you buy in Inventory'
+                ? 'Add feed you buy in Store'
                 : feed.low > 0
                   ? `${Math.round(feed.kg).toLocaleString()} kg • ${feed.low} running low`
                   : `${Math.round(feed.kg).toLocaleString()} kg in store`
@@ -819,14 +868,14 @@ export function DashboardPage() {
                       <span className="text-sm text-[#70829B] dark:text-[#94A3B8]">{perf.suffix}</span>
                     </div>
                     {perf.change && (
-                      <span className={`inline-flex items-center gap-1 text-[11px] ${perf.change.up ? 'text-[#4D6600] dark:text-[#DFFF83]' : 'text-rose-600 dark:text-[#FB7185]'}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs ${perf.change.up ? 'text-[#4D6600] dark:text-[#DFFF83]' : 'text-rose-600 dark:text-[#FB7185]'}`}>
                         {perf.change.up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                         {perf.change.text}
                       </span>
                     )}
                   </div>
                   {perf.extras?.length > 0 && (
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#70829B] dark:text-[#94A3B8]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-[#70829B] dark:text-[#94A3B8]">
                       {perf.extras.map((x) => (
                         <span key={x.label}>
                           {x.label}: <strong className="font-semibold text-[#142033] dark:text-[#F5F7F5]">{x.value}</strong>
@@ -887,13 +936,13 @@ export function DashboardPage() {
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-sm font-semibold truncate text-[#142033] dark:text-[#F5F7F5]">{item.title}</span>
                             {item.pending && (
-                              <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-[#261B06] border border-amber-200 dark:border-[#4A350C] text-[10px] font-semibold text-amber-800 dark:text-[#FCD34D]">
+                              <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-[#261B06] border border-amber-200 dark:border-[#4A350C] text-xs font-semibold text-amber-800 dark:text-[#FCD34D]">
                                 Waiting to send
                               </span>
                             )}
                           </div>
                           <div className="text-xs text-[#70829B] dark:text-[#94A3B8] truncate">{item.sub}</div>
-                          <div className="text-[11px] text-[#70829B]/90 dark:text-[#94A3B8]/80 truncate">{stamp(item.at)}</div>
+                          <div className="text-xs text-[#70829B]/90 dark:text-[#94A3B8]/80 truncate">{stamp(item.at)}</div>
                         </div>
                         <ChevronRight size={16} className="text-[#70829B] dark:text-[#94A3B8] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
@@ -924,7 +973,7 @@ export function DashboardPage() {
         onSaved={({ mode }) => mode === 'schedule' && reload()}
         batches={activeBatches}
         events={healthEvents}
-        prefill={RECORD_PREFILL}
+        prefill={vacPrefill}
       />
 
       {/* First visit after onboarding: nudge towards the first batch. */}

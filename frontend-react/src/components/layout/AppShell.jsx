@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import {
   Menu,
   User,
@@ -16,20 +16,25 @@ import { useOfflineQueue } from '../../lib/useOfflineQueue';
 import { InventoryIcon } from '../ui/InventoryIcon';
 import { BatchIcon } from '../ui/BatchIcon';
 import { SettingsIcon } from '../ui/SettingsIcon';
-import { HistoryIcon } from '../ui/HistoryIcon';
+import { MoneyIcon } from '../ui/MoneyIcon';
 import { FarmIcon } from '../ui/FarmIcon';
 import { OfflineBanner } from '../pwa/OfflineBanner';
 import { UpdateBanner } from '../pwa/UpdateBanner';
 import { InstallPrompt } from '../pwa/InstallPrompt';
+import { PushPrompt } from '../pwa/PushPrompt';
+import { refreshPushSubscription } from '../../lib/push';
+import { prefetchAppPages } from '../../lib/lazyPages';
+import { LoadingIndicator } from '../ui/LoadingIndicator';
 import { EmailBounceBanner } from '../ui/EmailBounceBanner';
 
 const VIEW_TITLES = {
   '/dashboard': 'Farm Overview',
-  '/inventory': 'Inventory',
+  '/inventory': 'Store',
   '/history': 'History',
   '/batches': 'Batches',
   '/settings': 'Settings',
   '/notifications': 'Notifications',
+  '/money': 'Income & Expenses',
   '/batches/new': 'Create New Batch',
 };
 
@@ -39,6 +44,15 @@ export function AppShell() {
   const userMenuRef = useRef(null);
   const { farm, logout } = useAuth();
   const location = useLocation();
+
+  // Phones with notifications on re-save their subscription once per app
+  // open, in case the browser rotated it (see lib/push.js).
+  useEffect(() => {
+    refreshPushSubscription();
+    // Download the other pages in the background so they open instantly,
+    // and so the service worker has them for offline use.
+    prefetchAppPages();
+  }, []);
   const { pending, sending, flush } = useOfflineQueue();
 
   useEffect(() => {
@@ -103,7 +117,7 @@ export function AppShell() {
                 onClick={flush}
                 disabled={sending}
                 title="These entries are saved on this phone and will send by themselves"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-[#261B06] text-amber-800 dark:text-[#FCD34D] border border-amber-200 dark:border-[#4A350C] hover:bg-amber-100 dark:hover:bg-[#38280A] transition-colors cursor-pointer disabled:opacity-70"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-[#261B06] text-amber-800 dark:text-[#FCD34D] border border-amber-200 dark:border-[#4A350C] hover:bg-amber-100 dark:hover:bg-[#38280A] transition-colors cursor-pointer disabled:opacity-70"
               >
                 {sending ? (
                   <RefreshCw size={13} className="animate-spin shrink-0" />
@@ -179,11 +193,24 @@ export function AppShell() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10 max-w-7xl w-full mx-auto">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-20">
+                <LoadingIndicator label="Loading" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
 
         {/* "Add to home screen" card: phones, dashboard only, rarely (see lib/pwa.js) */}
-        {location.pathname === '/dashboard' && <InstallPrompt />}
+        {location.pathname === '/dashboard' && (
+          <>
+            <InstallPrompt />
+            <PushPrompt />
+          </>
+        )}
 
         {/* Mobile Bottom Navigation Bar -- floats as its own rounded card above
             the safe area rather than sitting flush with the screen edges, so
@@ -195,8 +222,8 @@ export function AppShell() {
           {[
             { to: '/dashboard', icon: FarmIcon, label: 'Home' },
             { to: '/batches', icon: BatchIcon, label: 'Batches' },
-            { to: '/inventory', icon: InventoryIcon, label: 'Inventory' },
-            { to: '/history', icon: HistoryIcon, label: 'History' },
+            { to: '/inventory', icon: InventoryIcon, label: 'Store' },
+            { to: '/money', icon: MoneyIcon, label: 'Money' },
             { to: '/settings', icon: SettingsIcon, label: 'Settings' },
           ].map((item) => {
             const Icon = item.icon;
@@ -204,7 +231,7 @@ export function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className="flex flex-col items-center justify-center gap-0.5 py-1 min-w-13 text-[11px] font-semibold active:scale-95 transition-transform"
+                className="flex flex-col items-center justify-center gap-0.5 py-1 min-w-13 text-xs font-semibold active:scale-95 transition-transform"
               >
                 {({ isActive }) => (
                   <>

@@ -126,7 +126,7 @@ export function DataBackupPanel() {
 
       <SettingsCard
         title="Backup file"
-        description="Your records are already saved to your FarmBook account. This saves a copy on this device that you can keep."
+        description="Your records are already saved to your TrackFarm account. This saves a copy on this device that you can keep."
         action={
           <PrimaryButton icon={backingUp ? RefreshCw : Download} onClick={handleBackup} disabled={backingUp}>
             {backingUp ? 'Preparing…' : 'Download backup'}

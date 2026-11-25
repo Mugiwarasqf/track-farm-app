@@ -160,29 +160,48 @@ export const INSTALL_CARD_MAX_SHOWS = 3;
 const INSTALL_CARD_KEY = 'trackfarm_install_card';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function readInstallCard() {
+function readCard(key) {
   try {
-    const saved = JSON.parse(localStorage.getItem(INSTALL_CARD_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(key) || '{}');
     return { count: Number(saved.count) || 0, lastShownAt: Number(saved.lastShownAt) || 0 };
   } catch {
     return { count: 0, lastShownAt: 0 };
   }
 }
 
-/** True when the card is allowed to appear on this phone right now. */
-export function installCardDue() {
-  const { count, lastShownAt } = readInstallCard();
+/** True when a dashboard card with this storage key may appear on this phone now. */
+export function cardDue(key) {
+  const { count, lastShownAt } = readCard(key);
   return count < INSTALL_CARD_MAX_SHOWS && Date.now() - lastShownAt >= INSTALL_CARD_GAP_DAYS * DAY_MS;
 }
 
-/** Call once each time the card actually appears. */
-export function recordInstallCardShown() {
-  const { count } = readInstallCard();
+/** Call once each time that card actually appears. */
+export function recordCardShown(key) {
+  const { count } = readCard(key);
   try {
-    localStorage.setItem(INSTALL_CARD_KEY, JSON.stringify({ count: count + 1, lastShownAt: Date.now() }));
+    localStorage.setItem(key, JSON.stringify({ count: count + 1, lastShownAt: Date.now() }));
   } catch {
     // Storage blocked: the card may simply show again next visit.
   }
+}
+
+// At most one dashboard card per visit (install card or phone-notifications
+// card), so the farmer is never asked two things at once.
+let cardShownThisVisit = false;
+
+/** Claims this visit's one card. Returns false if another card already showed. */
+export function claimCardSlot() {
+  if (cardShownThisVisit) return false;
+  cardShownThisVisit = true;
+  return true;
+}
+
+export function installCardDue() {
+  return cardDue(INSTALL_CARD_KEY);
+}
+
+export function recordInstallCardShown() {
+  recordCardShown(INSTALL_CARD_KEY);
 }
 
 /** Shows the browser's install dialog. Resolves true if the farmer accepted. */

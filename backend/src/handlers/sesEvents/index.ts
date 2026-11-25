@@ -1,6 +1,6 @@
 import type { SNSHandler } from "aws-lambda";
-import { PutCommand, ScanCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { ddb, tables } from "../../lib/dynamo";
+import { PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { ddb, scanAll, tables } from "../../lib/dynamo";
 import { logger } from "../../lib/logger";
 
 // Subscribed to the ses module's SNS topic (infra/modules/ses/main.tf) —
@@ -71,16 +71,14 @@ async function suppress(email: string, reason: "bounce" | "complaint") {
 // so a mistyped signup address becomes something the farmer can see and
 // fix, not a silent, permanent dead end.
 async function flagFarmEmailBounced(email: string) {
-  const farms = await ddb.send(
-    new ScanCommand({
-      TableName: tables.farms,
-      FilterExpression: "ownerEmail = :email",
-      ExpressionAttributeValues: { ":email": email },
-      ProjectionExpression: "farmId",
-    })
-  );
+  const farms = await scanAll({
+    TableName: tables.farms,
+    FilterExpression: "ownerEmail = :email",
+    ExpressionAttributeValues: { ":email": email },
+    ProjectionExpression: "farmId",
+  });
 
-  for (const farm of farms.Items ?? []) {
+  for (const farm of farms) {
     await ddb.send(
       new UpdateCommand({
         TableName: tables.farms,

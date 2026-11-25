@@ -207,7 +207,7 @@ resource "aws_dynamodb_table" "sick_bay" {
 }
 
 # Addresses that permanently bounced or complained, so the three
-# email-sending handlers (createAuthChallenge, vaccinationReminders,
+# email-sending handlers (signup welcome, vaccinationReminders,
 # entryNudges) can skip them instead of continuing to send and damaging
 # this domain's SES sending reputation — see infra/modules/ses's SNS
 # topic and backend/src/handlers/sesEvents/index.ts, which is what
@@ -220,5 +220,87 @@ resource "aws_dynamodb_table" "suppressed_emails" {
   attribute {
     name = "email"
     type = "S"
+  }
+}
+
+# Vitamins, supplements and dewormers given to a batch. Server-side so the
+# daily farm-alerts job can push when a withdrawal period ends.
+resource "aws_dynamodb_table" "supplements" {
+  name         = "${var.project_name}-${var.environment}-supplements"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "batchId"
+  range_key    = "entryId"
+
+  attribute {
+    name = "batchId"
+    type = "S"
+  }
+  attribute {
+    name = "entryId"
+    type = "S"
+  }
+}
+
+# Birds or eggs sold (the Income & Expenses page). Farm-keyed; a bird sale
+# carries its batchId and lowers that batch's birds alive.
+resource "aws_dynamodb_table" "sales" {
+  name         = "${var.project_name}-${var.environment}-sales"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "farmId"
+  range_key    = "entryId"
+
+  attribute {
+    name = "farmId"
+    type = "S"
+  }
+  attribute {
+    name = "entryId"
+    type = "S"
+  }
+}
+
+# Vaccines and vitamins/dewormers bought in bulk for the farm's store.
+# What's left is bought minus what batch records took (stockKey).
+resource "aws_dynamodb_table" "medicine_purchases" {
+  name         = "${var.project_name}-${var.environment}-medicine-purchases"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "farmId"
+  range_key    = "entryId"
+
+  attribute {
+    name = "farmId"
+    type = "S"
+  }
+  attribute {
+    name = "entryId"
+    type = "S"
+  }
+}
+
+# One row per phone that turned on notifications (Web Push). Keyed by farm
+# so the reminder jobs can fetch a farm's phones in one Query.
+# SubscriptionIdIndex finds the same phone under any farm, so saving it for
+# one account removes it from another (shared phones, account switches) —
+# see backend/src/handlers/push/index.ts.
+resource "aws_dynamodb_table" "push_subscriptions" {
+  name         = "${var.project_name}-${var.environment}-push-subscriptions"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "farmId"
+  range_key    = "subscriptionId"
+
+  attribute {
+    name = "farmId"
+    type = "S"
+  }
+
+  attribute {
+    name = "subscriptionId"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "SubscriptionIdIndex"
+    hash_key        = "subscriptionId"
+    projection_type = "KEYS_ONLY"
   }
 }

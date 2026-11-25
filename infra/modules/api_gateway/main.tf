@@ -15,7 +15,7 @@ locals {
   # has 3).
   api_lambda_keys = [
     "batches", "farms", "feed_stock", "mortality", "feed", "eggs", "weight", "sick_bay", "vaccinations",
-    "vaccination_schedule", "summary", "sync",
+    "vaccination_schedule", "summary", "sync", "push", "supplements", "sales", "medicine_stock",
     "auth_signup", "auth_login", "auth_forgot_password", "auth_confirm_forgot_password",
   ]
 }
@@ -26,7 +26,7 @@ resource "aws_apigatewayv2_api" "main" {
 
   cors_configuration {
     allow_origins = ["*"] # tighten to the real app's origin(s) once the frontend framework is picked
-    allow_methods = ["GET", "POST", "PATCH", "OPTIONS"]
+    allow_methods = ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     allow_headers = ["content-type", "authorization"]
   }
 }
@@ -103,6 +103,13 @@ resource "aws_apigatewayv2_route" "batches_create" {
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
   authorization_type = "JWT"
 }
+resource "aws_apigatewayv2_route" "batches_delete" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "DELETE /batches/{id}"
+  target             = "integrations/${aws_apigatewayv2_integration.this["batches"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
 resource "aws_apigatewayv2_route" "batches_update" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "PATCH /batches/{id}"
@@ -126,6 +133,20 @@ resource "aws_apigatewayv2_route" "farms_update" {
   authorization_type = "JWT"
 }
 
+resource "aws_apigatewayv2_route" "medicine_stock_list" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /medicine-stock"
+  target             = "integrations/${aws_apigatewayv2_integration.this["medicine_stock"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+resource "aws_apigatewayv2_route" "medicine_stock_create" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /medicine-stock"
+  target             = "integrations/${aws_apigatewayv2_integration.this["medicine_stock"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
 resource "aws_apigatewayv2_route" "feed_stock_list" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "GET /feed-stock"
@@ -225,6 +246,45 @@ resource "aws_apigatewayv2_route" "sick_bay_update" {
   authorization_type = "JWT"
 }
 
+# Birds and eggs sold (Income & Expenses page).
+resource "aws_apigatewayv2_route" "sales_list" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /sales"
+  target             = "integrations/${aws_apigatewayv2_integration.this["sales"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+resource "aws_apigatewayv2_route" "sales_create" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /sales"
+  target             = "integrations/${aws_apigatewayv2_integration.this["sales"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+resource "aws_apigatewayv2_route" "sales_delete" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "DELETE /sales/{entryId}"
+  target             = "integrations/${aws_apigatewayv2_integration.this["sales"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+# Vitamins, supplements and dewormers per batch.
+resource "aws_apigatewayv2_route" "supplements_list" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "GET /batches/{id}/supplements"
+  target             = "integrations/${aws_apigatewayv2_integration.this["supplements"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+resource "aws_apigatewayv2_route" "supplements_create" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /batches/{id}/supplements"
+  target             = "integrations/${aws_apigatewayv2_integration.this["supplements"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
 resource "aws_apigatewayv2_route" "vaccinations_list" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "GET /batches/{id}/vaccinations"
@@ -274,6 +334,22 @@ resource "aws_apigatewayv2_route" "sync_batch" {
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "POST /sync/batch"
   target             = "integrations/${aws_apigatewayv2_integration.this["sync"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "push_subscribe" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /push/subscriptions"
+  target             = "integrations/${aws_apigatewayv2_integration.this["push"].id}"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+  authorization_type = "JWT"
+}
+
+resource "aws_apigatewayv2_route" "push_unsubscribe" {
+  api_id             = aws_apigatewayv2_api.main.id
+  route_key          = "POST /push/subscriptions/remove"
+  target             = "integrations/${aws_apigatewayv2_integration.this["push"].id}"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
   authorization_type = "JWT"
 }

@@ -39,7 +39,7 @@ export function NotificationCard({ notification: n, now, onSelect, onDelete }) {
           </span>
           <span className="block mt-0.5 text-[13px] leading-[18px] text-stone-500 dark:text-[#64748B] line-clamp-2">{n.message}</span>
           {/* On phones the time sits here, leaving the right edge for the dot and controls. */}
-          <time dateTime={n.created_at} className="sm:hidden block mt-1 text-[11px] text-stone-400 dark:text-[#4B5563]">
+          <time dateTime={n.created_at} className="sm:hidden block mt-1 text-xs text-stone-400 dark:text-[#4B5563]">
             {relativeTimeLong(n.created_at, now)}
           </time>
         </button>

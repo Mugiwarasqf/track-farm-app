@@ -37,9 +37,9 @@ in this Documents\Cloud directory.
   direction, turned into a concrete data model, API shape, and build
   sequence.
 - Backend and infra are real and code-complete. `infra/` is a modular
-  Terraform stack covering Cognito (email/OTP auth), API Gateway, 20
-  Lambda functions, 12 DynamoDB tables, S3, SES, and daily EventBridge
-  notification schedules. `backend/` is the TypeScript Lambda source.
+  Terraform stack covering Cognito (email+password auth), API Gateway, 24
+  Lambda functions, 16 DynamoDB tables, S3, SES, Web Push phone
+  notifications, and daily EventBridge notification schedules. `backend/` is the TypeScript Lambda source.
   Deploy state varies since this has been applied, torn down, and
   reapplied multiple times during testing; check `terraform plan` before
   assuming current state. See "Infrastructure" below for module detail.
@@ -62,7 +62,9 @@ in this Documents\Cloud directory.
   `docs/11-platform-obstacles.md`: the original SMS auth plan hit an AWS
   account gap, the fallback email channel then hit both an SES
   production-access denial and an Apple/iCloud delivery rejection, and the
-  original SMS gap has since turned out to be resolved.
+  original SMS gap has since turned out to be resolved. Net result so
+  far: login moved to email+password (no message per login), and
+  reminders now also go out as phone push, which avoids email entirely.
 
 ## Key validated findings
 
@@ -131,34 +133,40 @@ real and pass their checks (`terraform validate`/`terraform plan`, `tsc
 --noEmit`, `npm run build`).
 
 **Module structure** (`infra/main.tf` wires these together): `dynamodb`,
-`s3`, and `ses` have no dependencies; `auth_triggers` needs `ses`'s
-identity and `dynamodb`'s suppression table; `cognito` depends on
-`auth_triggers`; `api_lambdas` depends on `dynamodb`, `cognito`, and
-`ses`; `api_gateway`, `notifications`, and `frontend` each depend on
-`api_lambdas`/`cognito`/`api_gateway` outputs. The three Cognito trigger
-Lambdas live in their own `auth_triggers` module, separate from the other
-17 in `api_lambdas`, specifically to avoid a module dependency cycle:
-`cognito` needs their ARNs, and the other Lambdas need `cognito`'s pool
-ID. See `infra/main.tf`'s header comment for the full diagram.
+`s3`, `ses`, and `cognito` have no dependencies; `api_lambdas` depends on
+`dynamodb`, `cognito`, and `ses`; `api_gateway`, `notifications`, and
+`frontend` each depend on `api_lambdas`/`cognito`/`api_gateway` outputs.
+All 24 Lambdas live in `api_lambdas`. The old `auth_triggers` module was
+deleted with the move to password auth, since Cognito no longer has
+Lambda triggers. See `infra/main.tf`'s header comment for the diagram.
 
-- **Cognito** (`infra/modules/cognito/`): email/OTP auth via a
-  CUSTOM_AUTH challenge flow. Cognito never sends the email itself; the
-  three Lambda triggers in `infra/modules/auth_triggers/`
-  (`backend/src/handlers/authTriggers/`) generate the code, send it via
-  direct SES `SendEmail`, and verify the answer. `POST /auth/otp/request`
-  and `/verify` (`backend/src/handlers/auth/`) front Cognito's
-  InitiateAuth/RespondToAuthChallenge and provision the Farm and User rows
-  on a brand-new email address's first login.
+- **Cognito** (`infra/modules/cognito/`): email+password auth (switched
+  from passwordless email OTP on 08/10/2026, because OTP needed an email
+  delivered on every login and SES couldn't do that reliably, see
+  `docs/11-platform-obstacles.md`). `USER_PASSWORD_AUTH` flow, no Lambda
+  triggers. Loose password policy on purpose (8+ characters, a lowercase
+  letter and a number, no symbols or capitals) for a low-literacy
+  audience. `backend/src/handlers/auth/`: `signup` creates and
+  auto-confirms the Cognito user (no verification-code step), provisions
+  the Farm and User rows, and sends a best-effort welcome email so a
+  mistyped address shows up as a bounce (`Farm.emailBounced`). `login`
+  fronts InitiateAuth. `forgotPassword`/`confirmForgotPassword` use
+  Cognito's own built-in email, not SES, so reset works even with SES in
+  sandbox.
 - **API Gateway (HTTP API) plus Lambda**: one Lambda per resource
   (`backend/src/handlers/*`), routes wired in `infra/modules/api_gateway/`,
   protected by a Cognito JWT authorizer. `farmId` is always read from the
   authenticated token's `custom:farmId` claim, never trusted from the
   request (`backend/src/lib/http.ts`).
-- **DynamoDB** (`infra/modules/dynamodb/`): 12 tables, one per entity plus
-  a `suppressed_emails` table for bounce/complaint handling. Two GSIs
-  beyond the core data model, both needed for the notification Lambdas: a
-  batchId-only index on `batches`, and a status+dueDate index on
-  `vaccination_schedules`.
+- **DynamoDB** (`infra/modules/dynamodb/`): 15 tables, one per entity
+  (including `supplements`, vitamins/dewormers per batch, moved off the
+  phone 24/11/2026, `sales`, birds or eggs sold, and `medicine_purchases`,
+  vaccines and vitamins bought into the farm's store, both farm-keyed) plus `suppressed_emails` for bounce/complaint handling
+  and `push_subscriptions` for phone notifications. GSIs beyond the core
+  data model: a batchId-only index on `batches` and a status+dueDate index
+  on `vaccination_schedules` (both for the notification Lambdas), and a
+  subscriptionId index on `push_subscriptions` (moves a shared phone to
+  whichever farm last signed in on it).
 - **Offline resilience**: `POST /sync/batch` (`backend/src/handlers/sync/`)
   accepts the on-device JSON Lines queue and applies each line
   idempotently (client-generated `entryId`, conditional put). Reads still
@@ -171,14 +179,33 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
   bounce/complaint handling: an SNS topic, a dedicated Lambda
   (`backend/src/handlers/sesEvents/`), and a DynamoDB suppression table
   checked before every send. Account remains in the SES sandbox; see
-  `docs/11-platform-obstacles.md`. Two daily EventBridge Schedules
-  (`infra/modules/notifications/`) drive the notification Lambdas:
-  vaccination reminders (a 3-day window) and the entry-completeness nudge.
+  `docs/11-platform-obstacles.md`.
+- **Notifications**: three daily 7am (Africa/Lagos) EventBridge Schedules
+  (`infra/modules/notifications/`), each a Lambda in
+  `backend/src/handlers/scheduled/`: `vaccinationReminders` (3-day
+  window) and `entryNudges` (nothing logged for 2 days) send phone push
+  plus email; `farmAlerts` (feed stock low/out, withdrawal period over)
+  sends push only. Each respects its own `Farm.notificationPrefs` switch,
+  and `emailAlerts` only turns off the email side.
+- **Phone push (Web Push)**: built by Dolapo 24/11/2026. Phones register
+  via `POST /push/subscriptions` (`backend/src/handlers/push/`); sending
+  is `backend/src/lib/push.ts`, which deletes subscriptions the push
+  service reports gone. It doesn't go through SES, so it reaches farmers
+  the SES sandbox and Apple rejection block. VAPID keys: the public key is
+  the `vapid_public_key` Terraform var (GitHub variable
+  `VAPID_PUBLIC_KEY` for CI/CD); the private key lives only in SSM at
+  `/<project_name>/<environment>/vapid-private-key` (made per account by
+  hand with `infra/scripts/create-vapid-keys.sh`, never in Terraform
+  state). With no keys, push switches itself off and email carries on.
+  On iPhone, push only works once the app is added to the home screen.
 - **Logging**: a small shared structured logger (`backend/src/lib/logger.ts`)
   covers the points that were previously silent, suppression skips,
   scheduled-job summary counts, auth failures and provisioning, rather
   than blanket logging everywhere (Lambda already logs uncaught
   exceptions on its own).
+- **Frontend hosting**: a private S3 bucket that only its CloudFront
+  distribution can read (origin access control); app routes fall back to
+  `index.html` via CloudFront's 403/404 handling.
 - **Custom domain**: `trackfarm.cc` (apex) serves the frontend via
   CloudFront, `api.trackfarm.cc` serves the backend via an API Gateway
   regional custom domain. Both ACM certificates use DNS validation; DNS
@@ -194,14 +221,19 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
   gitignored) and backend config (`infra/backend-configs/{beta,prod}.hcl`,
   pointing at that account's own `trackfarm-tfstate-<account-id>` S3
   bucket and `trackfarm-tfstate-lock` DynamoDB table — both created in
-  both accounts, beta's local state not yet migrated over).
+  both accounts; beta's state moved there 09/11/2026).
 - **`infra/bootstrap/`**: a separate Terraform root, applied once per
-  account, for the GitHub Actions OIDC provider and the
-  `trackfarm-github-actions` IAM role CI/CD assumes (AdministratorAccess
-  for now, same "simplicity for beta" pattern as elsewhere).
-- **CI/CD** (`.github/workflows/`): `ci.yml` runs on every PR — typecheck
+  account, for the GitHub Actions OIDC provider and two IAM roles:
+  `trackfarm-github-actions` (AdministratorAccess, for `cd.yml`) trusts
+  only jobs running `main`'s code with no `environment:` set, and
+  `trackfarm-github-actions-plan` (ReadOnlyAccess) is all a pull request
+  can assume, so editing a workflow in a PR can't reach admin. GitHub vars
+  `AWS_ROLE_ARN` and `AWS_PLAN_ROLE_ARN` point at them.
+- **CI/CD** (`.github/workflows/`): `ci.yml` runs on every PR — typecheck,
+  test (`backend/`: `npm test`, Node's built-in runner on the pure logic)
   and build both `backend/` and `frontend-react/`, then
-  `terraform validate`/`plan` against prod. `cd.yml` is manually triggered
+  `terraform validate`/`plan -lock=false` against prod with the read-only
+  role. `cd.yml` is manually triggered
   (`workflow_dispatch`) after a merge to `main` and runs `terraform
   apply` against prod — manual trigger is the approval gate, since
   GitHub's native required-reviewers environment protection needs a paid
@@ -263,10 +295,10 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
    has been applied, destroyed, and reapplied multiple times during
    testing. Run `terraform plan` to see drift before deploying blind.
 3. Phone/SMS auth is worth reconsidering now that the original AWS
-   blocker appears resolved (`docs/11-platform-obstacles.md`), rather than
-   treating email as the settled answer. Switching back means destroying
-   and recreating the Cognito user pool again, same cost as the original
-   switch away from phone.
+   blocker appears resolved (`docs/11-platform-obstacles.md`). Less urgent
+   since the move to password auth, as login no longer depends on email
+   delivery. Switching to phone means destroying and recreating the
+   Cognito user pool again, since the username attribute can't change.
 4. Pricing structure is decided (free trial, then paid); use a placeholder
    trial length/price for the beta. The real numbers come from a second,
    dedicated payment survey once the trial phase has real traction.
@@ -279,11 +311,25 @@ ID. See `infra/main.tf`'s header comment for the full diagram.
    about whether either is actually wanted.
 7. SES production access was denied with no specific reason given
    (`docs/11-platform-obstacles.md`); the account stays in sandbox for
-   now. Decide between a third-party email provider, staying in sandbox
-   with manual recipient verification, or switching back to phone/SMS.
-8. The prod stack and CI/CD pipeline are code-complete but not yet live:
-   `terraform apply` in `infra/bootstrap/` (per account) and `infra/`
-   (prod), plus migrating beta's state to its new S3 backend
-   (`terraform init -migrate-state`), all still need to be run by hand —
-   this agent's auto mode is blocked from running `apply` or any state
-   migration itself.
+   now. Phone push now carries reminders without SES, so the remaining
+   options are: push as the main reminder channel with email as fallback,
+   a third-party email provider, staying in sandbox with manual recipient
+   verification, or SMS.
+8. Done 25/11/2026: `infra/bootstrap/` re-applied against prod (read-only
+   plan role created, admin role trust narrowed to `main`) and the
+   `AWS_PLAN_ROLE_ARN` GitHub variable set. Until the PR carrying the new
+   `cd.yml` (no `environment:`) is merged, a prod deploy from the old
+   `cd.yml` would be refused by the narrowed trust.
+9. Turn phone push on: run `infra/scripts/create-vapid-keys.sh`, store the
+   private key in SSM in each account, and set `vapid_public_key` (beta
+   tfvars) and the `VAPID_PUBLIC_KEY` GitHub variable (prod). Then test
+   on a real Android phone and an iPhone added to the home screen.
+10. The Income & Expenses page (`/money`) is the locked weekly/monthly summary
+    (§5). Income comes from sales recorded with "Add sale" (birds by type
+    and batch, eggs by size, crates or pieces), separate from daily egg
+    collection. Expenses count when money is spent: store purchases (feed,
+    vaccines, vitamins) on the day bought, and a record that took from the
+    store adds nothing more (`backend/src/lib/expenses.ts`); a batch's own
+    profit still uses what that batch used. Birds alive everywhere = placed − deaths − birds sold,
+    computed by `GET /batches`. Worth checking with a farmer whether the
+    egg sizes (small/medium/large/jumbo) match how they sell.
