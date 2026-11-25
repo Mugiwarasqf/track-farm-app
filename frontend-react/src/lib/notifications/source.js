@@ -185,7 +185,7 @@ function withdrawalNotifications(batchNames, today) {
       return {
         id: `withdrawal_ended:${s.id}`,
         type: 'withdrawal_ended',
-        title: `${batchName}: withdrawal period over`,
+        title: `${batchName}: safe to sell again`,
         message: `Eggs and meat are safe to sell again after ${s.product || 'the'} ${what}.`,
         link: s.batchId ? `/batches/${s.batchId}` : '/inventory',
         created_at: at(safeDate),

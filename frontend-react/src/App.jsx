@@ -22,6 +22,7 @@ import {
   InventoryPage,
   SettingsPage,
   NotificationsPage,
+  SummaryPage,
 } from './lib/lazyPages';
 
 function FullScreenLoader() {
@@ -204,6 +205,9 @@ export default function App() {
               they share one component and differ only by :section. */}
           {/* Notifications — the full list behind the header bell */}
           <Route path="/notifications" element={<NotificationsPage />} />
+
+          {/* Money in and out: weekly / monthly summary */}
+          <Route path="/money" element={<SummaryPage />} />
 
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/:section" element={<SettingsPage />} />

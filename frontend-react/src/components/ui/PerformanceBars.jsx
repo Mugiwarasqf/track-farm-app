@@ -77,7 +77,7 @@ function BarRow({ bar }) {
         <span className="absolute top-0 h-4 w-[2px] -ml-px bg-stone-800 rounded-full" style={{ left: pct(bar.target) }} />
 
         {/* Tooltip */}
-        <span className="pointer-events-none absolute bottom-full mb-2 z-10 whitespace-nowrap rounded-md bg-stone-900 px-2 py-1 text-[11px] text-white shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        <span className="pointer-events-none absolute bottom-full mb-2 z-10 whitespace-nowrap rounded-md bg-stone-900 px-2 py-1 text-xs text-white shadow-lg opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
           style={{ left: `min(${pct(bar.value)}, calc(100% - 9rem))` }}
         >
           {bar.display} · target {target} · {rating}
@@ -94,7 +94,7 @@ export function PerformanceBars({ bars }) {
   return (
     <div>
       {bars.map((bar) => <BarRow key={bar.label} bar={bar} />)}
-      <p className="mt-1.5 text-[11px] text-stone-400">
+      <p className="mt-1.5 text-xs text-stone-400">
         Tick marks the target · shading runs from needs attention (dark) to excellent (light)
       </p>
     </div>

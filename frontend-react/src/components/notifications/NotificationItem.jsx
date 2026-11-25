@@ -43,7 +43,7 @@ export function NotificationItem({ notification: n, now, onSelect, compact = fal
             <time
               dateTime={n.created_at}
               title={fullTime(n.created_at)}
-              className="shrink-0 text-[11px] leading-5 text-stone-400 dark:text-[#64748B] tabular-nums"
+              className="shrink-0 text-xs leading-5 text-stone-400 dark:text-[#64748B] tabular-nums"
             >
               {relativeTime(n.created_at, now)}
             </time>

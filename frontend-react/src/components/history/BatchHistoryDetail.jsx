@@ -135,7 +135,7 @@ function StatTile({ icon: Icon, label, value, suffix, hint }) {
         <span className="text-2xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{value}</span>
         {suffix && <span className="text-xs text-stone-400 dark:text-[#64748B]">{suffix}</span>}
       </div>
-      {hint && <div className="text-[11px] text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
+      {hint && <div className="text-xs text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -441,7 +441,7 @@ function OverviewTab({ batch, stats }) {
           />
           <InsightRow
             icon={Percent}
-            label="Feed conversion ratio"
+            label="Feed per kg of growth"
             value={stats.fcr != null ? `${stats.fcr} : 1` : 'No weight samples logged'}
           />
           <InsightRow

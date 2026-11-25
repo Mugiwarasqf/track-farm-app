@@ -38,17 +38,17 @@ export const ROUTES = {
 const CHICKENS = ['layer', 'broiler', 'cockerel', 'noiler', 'chick'];
 
 export const VACCINES = [
-  { id: 'mareks', name: "Marek's Disease", route: 'injection', site: 'Under the skin of the neck (SC)', typicalAge: 'Day 1, usually done at the hatchery', birds: [...CHICKENS, 'turkey'] },
-  { id: 'nd_hb1', name: 'Newcastle HB1 / I-2 (first dose)', route: 'eye_drop', typicalAge: 'Days 1–7', birds: CHICKENS },
-  { id: 'ib', name: 'Infectious Bronchitis (IB)', route: 'eye_drop', typicalAge: 'Days 1–7, often combined with ND', birds: CHICKENS },
-  { id: 'gumboro', name: 'Gumboro (IBD)', route: 'water', typicalAge: 'Days 10–14, repeat at days 18–24', birds: CHICKENS },
-  { id: 'nd_lasota', name: 'Newcastle LaSota', route: 'water', typicalAge: 'Week 3, repeat every 6–8 weeks in layers', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
-  { id: 'fowl_pox', name: 'Fowl Pox', route: 'wing_web', typicalAge: 'Weeks 6–10', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
-  { id: 'nd_komarov', name: 'Newcastle Komarov', route: 'injection', site: 'Breast or thigh muscle (IM)', typicalAge: 'Week 8 onwards', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
-  { id: 'fowl_typhoid', name: 'Fowl Typhoid', route: 'injection', site: 'Breast muscle (IM) or under the neck skin', typicalAge: 'Weeks 8–10', birds: ['layer', 'cockerel', 'noiler', 'chick'] },
-  { id: 'coryza', name: 'Infectious Coryza', route: 'injection', site: 'Breast muscle (IM) or under the neck skin', typicalAge: 'Weeks 8–12', birds: ['layer', 'cockerel', 'noiler', 'chick'] },
-  { id: 'eds', name: 'Egg Drop Syndrome (EDS)', route: 'injection', site: 'Breast muscle (IM)', typicalAge: 'Weeks 16–18, before laying starts', birds: ['layer'], laysEggsOnly: true },
-  { id: 'duck_plague', name: 'Duck Plague (DVE)', route: 'injection', site: 'Breast or thigh muscle (IM)', typicalAge: 'Week 3 onwards, booster yearly', birds: ['duck'] },
+  { id: 'mareks', name: "Marek's vaccine (HVT)", aliases: ["Marek's Disease"], route: 'injection', site: 'Under the skin of the neck (SC)', typicalAge: 'Day 1, usually done at the hatchery', birds: [...CHICKENS, 'turkey'] },
+  { id: 'nd_hb1', name: 'Newcastle HB1 / I-2 vaccine', aliases: ['Newcastle HB1 / I-2 (first dose)'], route: 'eye_drop', typicalAge: 'Days 1–7', birds: CHICKENS },
+  { id: 'ib', name: 'IB vaccine (Infectious Bronchitis)', aliases: ['Infectious Bronchitis (IB)'], route: 'eye_drop', typicalAge: 'Days 1–7, often combined with ND', birds: CHICKENS },
+  { id: 'gumboro', name: 'Gumboro vaccine (IBD)', aliases: ['Gumboro (IBD)'], route: 'water', typicalAge: 'Days 10–14, repeat at days 18–24', birds: CHICKENS },
+  { id: 'nd_lasota', name: 'Newcastle LaSota vaccine', aliases: ['Newcastle LaSota'], route: 'water', typicalAge: 'Week 3, repeat every 6–8 weeks in layers', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
+  { id: 'fowl_pox', name: 'Fowl Pox vaccine', aliases: ['Fowl Pox'], route: 'wing_web', typicalAge: 'Weeks 6–10', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
+  { id: 'nd_komarov', name: 'Newcastle Komarov vaccine', aliases: ['Newcastle Komarov'], route: 'injection', site: 'Breast or thigh muscle (IM)', typicalAge: 'Week 8 onwards', birds: [...CHICKENS, 'turkey', 'guinea_fowl'] },
+  { id: 'fowl_typhoid', name: 'Fowl Typhoid vaccine', aliases: ['Fowl Typhoid'], route: 'injection', site: 'Breast muscle (IM) or under the neck skin', typicalAge: 'Weeks 8–10', birds: ['layer', 'cockerel', 'noiler', 'chick'] },
+  { id: 'coryza', name: 'Coryza vaccine', aliases: ['Infectious Coryza'], route: 'injection', site: 'Breast muscle (IM) or under the neck skin', typicalAge: 'Weeks 8–12', birds: ['layer', 'cockerel', 'noiler', 'chick'] },
+  { id: 'eds', name: 'EDS vaccine (Egg Drop Syndrome)', aliases: ['Egg Drop Syndrome (EDS)'], route: 'injection', site: 'Breast muscle (IM)', typicalAge: 'Weeks 16–18, before laying starts', birds: ['layer'], laysEggsOnly: true },
+  { id: 'duck_plague', name: 'Duck Plague vaccine (DVE)', aliases: ['Duck Plague (DVE)'], route: 'injection', site: 'Breast or thigh muscle (IM)', typicalAge: 'Week 3 onwards, booster yearly', birds: ['duck'] },
   { id: 'other', name: 'Other vaccine', route: null, typicalAge: null },
 ];
 
@@ -63,6 +63,9 @@ export function vaccinesFor(birdType) {
   return VACCINES.filter((v) => !v.birds || v.birds.includes(type) || v.id === 'other');
 }
 
+/** Finds by current name, or by the older disease-style name older records carry. */
 export function findVaccine(name) {
-  return VACCINES.find((v) => v.name === name) || null;
+  const key = String(name || '').trim().toLowerCase();
+  if (!key) return null;
+  return VACCINES.find((v) => v.name.toLowerCase() === key || v.aliases?.some((a) => a.toLowerCase() === key)) || null;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Check, PackagePlus, Minus, Plus } from 'lucide-react';
+import { NairaInput } from './NairaInput';
 import { useToast } from './Toast';
 import { createFeedPurchase } from '../../api/feedStock';
 import { FEED_TYPES, FEED_BRANDS, formatNaira } from '../../lib/feeds';
@@ -133,7 +134,7 @@ export function FeedPurchaseModal({ isOpen, onClose, onSaved }) {
                 >
                   <span className="block text-xs font-bold">{t.label}</span>
                   {t.stage && (
-                    <span className={`block text-[10px] mt-0.5 ${feedType === t.label ? 'text-[#17191A]/60' : 'text-stone-400 dark:text-[#64748B]'}`}>{t.stage}</span>
+                    <span className={`block text-xs mt-0.5 ${feedType === t.label ? 'text-[#17191A]/60' : 'text-stone-400 dark:text-[#64748B]'}`}>{t.stage}</span>
                   )}
                 </button>
               ))}
@@ -180,9 +181,9 @@ export function FeedPurchaseModal({ isOpen, onClose, onSaved }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL}>Price per bag (₦)</label>
-              <input type="number" min="0" inputMode="numeric" value={pricePerBag} onChange={(e) => setPricePerBag(e.target.value)} className={FIELD} placeholder="e.g. 20500" />
-              <p className="text-[11px] text-stone-400 dark:text-[#64748B] mt-1">Used to work out what each batch's feed cost.</p>
+              <label className={LABEL}>Price per bag</label>
+              <NairaInput value={pricePerBag} onChange={setPricePerBag} className={FIELD} placeholder="₦20,500" />
+              <p className="text-xs text-stone-400 dark:text-[#64748B] mt-1">Used to work out what each batch's feed cost.</p>
             </div>
             <div>
               <label className={LABEL}>Date bought <span className="text-rose-500">*</span></label>

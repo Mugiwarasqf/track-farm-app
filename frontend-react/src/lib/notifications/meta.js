@@ -61,6 +61,6 @@ export const CATEGORY_FILTERS = [
   { id: 'system', label: 'System' },
   { id: 'batches', label: 'Batches' },
   { id: 'health', label: 'Health' },
-  { id: 'inventory', label: 'Inventory' },
+  { id: 'inventory', label: 'Store' },
   { id: 'reminders', label: 'Reminders' },
 ];

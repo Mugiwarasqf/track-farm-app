@@ -92,7 +92,7 @@ const BUILDERS = {
     };
   },
   supplements: (data) => ({
-    headers: ['Started', 'Batch', 'Type', 'Product', 'Dose', 'Reason', 'Withdrawal'],
+    headers: ['Started', 'Batch', 'Type', 'Product', 'Dose', 'Reason', 'Days before selling'],
     rows: [...data.supplements].sort(byDate).map((m) => [
       formatDate(m.date),
       m.batchName || '-',

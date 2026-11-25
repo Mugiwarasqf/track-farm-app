@@ -119,7 +119,7 @@ export function NotificationBell() {
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
-            className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-4 text-center tabular-nums ring-2 ring-white dark:ring-[#17191A]"
+            className="absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-xs font-bold leading-4 text-center tabular-nums ring-2 ring-white dark:ring-[#17191A]"
           >
             {badgeCount(unreadCount)}
           </span>
@@ -144,7 +144,7 @@ export function NotificationBell() {
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="text-[13px] font-semibold text-stone-900 dark:text-[#F5F7F5]">Notifications</h2>
               {unreadCount > 0 && (
-                <span className="px-1.5 h-5 inline-flex items-center rounded-md bg-stone-100 dark:bg-[#252A2E] text-[11px] font-medium text-stone-600 dark:text-[#DFFF83] tabular-nums">
+                <span className="px-1.5 h-5 inline-flex items-center rounded-md bg-stone-100 dark:bg-[#252A2E] text-xs font-medium text-stone-600 dark:text-[#DFFF83] tabular-nums">
                   {unreadCount} unread
                 </span>
               )}

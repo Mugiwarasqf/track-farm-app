@@ -30,7 +30,7 @@ export function AppTile() {
 function Step({ number, icon: Icon, title, detail }) {
   return (
     <li className="flex items-center gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-[11px] font-bold text-stone-700 dark:bg-[#252A2E] dark:text-[#CBD5E1]">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-700 dark:bg-[#252A2E] dark:text-[#CBD5E1]">
         {number}
       </span>
       <div className="min-w-0 flex-1">

@@ -32,7 +32,7 @@ const MAX_ATTEMPTS = 5;
 // against API Gateway, and so partial progress survives a mid-flush failure.
 const FLUSH_CHUNK_SIZE = 50;
 
-export const QUEUEABLE_RESOURCES = ['mortality', 'feed', 'eggs', 'vaccinations', 'weight', 'vaccination-schedule'];
+export const QUEUEABLE_RESOURCES = ['mortality', 'feed', 'eggs', 'vaccinations', 'weight', 'vaccination-schedule', 'supplements'];
 
 /**
  * Confirmation shown when an entry went to the queue instead of the server.
@@ -145,11 +145,11 @@ export async function getFailedCount() {
  * if the device has no usable IndexedDB — in which case the caller should
  * surface the original error rather than claim the entry was saved.
  */
-export async function enqueueLogEntry({ resource, batchId, payload }) {
+export async function enqueueLogEntry({ resource, batchId, payload, entryId }) {
   if (!QUEUEABLE_RESOURCES.includes(resource) || !batchId) return null;
 
   const record = {
-    entryId: newEntryId(),
+    entryId: entryId || newEntryId(),
     resource,
     batchId,
     payload: payload || {},

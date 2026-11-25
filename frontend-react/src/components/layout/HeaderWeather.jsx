@@ -103,7 +103,7 @@ export function HeaderWeather() {
               {weather.place?.name ? ` · ${weather.place.name}` : ''}
             </span>
           </span>
-          <span className="hidden md:inline text-[11px] text-[#70829B] dark:text-[#94A3B8] tabular-nums">
+          <span className="hidden md:inline text-xs text-[#70829B] dark:text-[#94A3B8] tabular-nums">
             Tomorrow {next.emoji} {deg(tomorrow.max)}/{deg(tomorrow.min)}
             {tomorrow.rainChance != null ? ` · 💧 ${tomorrow.rainChance}%` : ''}
           </span>

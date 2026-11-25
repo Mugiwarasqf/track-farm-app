@@ -58,6 +58,7 @@ const importers = {
   InventoryPage: () => import('../pages/InventoryPage'),
   SettingsPage: () => import('../pages/SettingsPage'),
   NotificationsPage: () => import('../pages/NotificationsPage'),
+  SummaryPage: () => import('../pages/SummaryPage'),
 };
 
 export const OnboardingPage = lazy(() => load(importers.OnboardingPage, 'OnboardingPage'));
@@ -71,6 +72,7 @@ export const BatchHistoryDetailPage = lazy(() => load(importers.BatchHistoryDeta
 export const InventoryPage = lazy(() => load(importers.InventoryPage, 'InventoryPage'));
 export const SettingsPage = lazy(() => load(importers.SettingsPage, 'SettingsPage'));
 export const NotificationsPage = lazy(() => load(importers.NotificationsPage, 'NotificationsPage'));
+export const SummaryPage = lazy(() => load(importers.SummaryPage, 'SummaryPage'));
 
 let prefetched = false;
 

@@ -32,7 +32,7 @@ function Tile({ icon: Icon, label, value, hint }) {
         <span className="text-xs font-medium truncate">{label}</span>
       </div>
       <div className="mt-2 text-2xl font-bold text-stone-950 dark:text-[#F5F7F5] font-heading tabular-nums">{value}</div>
-      {hint && <div className="text-[11px] text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
+      {hint && <div className="text-xs text-stone-400 dark:text-[#64748B] mt-0.5">{hint}</div>}
     </div>
   );
 }

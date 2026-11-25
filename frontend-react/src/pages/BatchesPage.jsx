@@ -82,10 +82,10 @@ function MetricBox({ icon: Icon, label, value, detail }) {
     <div className="bg-stone-50 dark:bg-[#1E2124] border border-stone-100 dark:border-[#2B3238] rounded-lg p-3.5 flex items-center gap-3 transition-colors">
       <Icon size={20} strokeWidth={2} className="text-stone-700 dark:text-[#94A3B8] shrink-0" />
       <div className="min-w-0">
-        <div className="text-[11px] text-stone-500 dark:text-[#94A3B8] truncate">{label}</div>
+        <div className="text-xs text-stone-500 dark:text-[#94A3B8] truncate">{label}</div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-bold text-stone-950 dark:text-[#F5F7F5] font-heading">{value}</span>
-          {detail && <span className="text-[11px] text-stone-400 dark:text-[#64748B] truncate">{detail}</span>}
+          {detail && <span className="text-xs text-stone-400 dark:text-[#64748B] truncate">{detail}</span>}
         </div>
       </div>
     </div>
@@ -122,7 +122,7 @@ function BatchCard({ batch, metric }) {
                 {batch.name}
               </h3>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 inline-flex items-center gap-1 ${
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 inline-flex items-center gap-1 ${
                   closed
                     ? 'bg-stone-100 dark:bg-[#1E2124] text-stone-500 dark:text-[#94A3B8] border-stone-200 dark:border-[#2B3238]'
                     : 'bg-sky-50 dark:bg-[#14233A] text-sky-700 dark:text-[#60A5FA] border-sky-200 dark:border-[#1E395F]'
@@ -142,7 +142,7 @@ function BatchCard({ batch, metric }) {
         <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs text-stone-600 dark:text-[#94A3B8]">
           <div className="flex min-w-0 items-center gap-2.5">
             <BirdIcon size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
-            <span>{Number(batch.birdCount || 0).toLocaleString()} birds</span>
+            <span>{Number(batch.currentBirds ?? batch.birdCount ?? 0).toLocaleString()} birds{batch.status === 'closed' ? ' placed' : ''}</span>
           </div>
           <div className="flex min-w-0 items-center gap-2.5">
             <Clock size={13} strokeWidth={2.5} className="text-stone-500 dark:text-[#94A3B8] shrink-0" />
@@ -221,7 +221,7 @@ export function BatchesPage() {
       total: batches.length,
       completed,
       active: batches.length - completed,
-      birds: batches.reduce((sum, b) => sum + (Number(b.birdCount) || 0), 0),
+      birds: batches.filter((b) => b.status !== 'closed').reduce((sum, b) => sum + (Number(b.currentBirds ?? b.birdCount) || 0), 0),
     };
   }, [batches]);
 
@@ -339,7 +339,7 @@ export function BatchesPage() {
         <StatCard icon={BirdIcon} label="Total Batches" value={stats.total} />
         <StatCard icon={CheckCircle2} label="Completed Batches" value={stats.completed} />
         <StatCard icon={Clock} label="Active Batches" value={stats.active} />
-        <StatCard icon={BirdIcon} label="Total Birds" value={stats.birds.toLocaleString()} />
+        <StatCard icon={BirdIcon} label="Birds Alive" value={stats.birds.toLocaleString()} />
       </div>
 
       {loading ? (

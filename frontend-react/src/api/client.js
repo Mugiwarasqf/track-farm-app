@@ -190,18 +190,8 @@ export function api(method, path, body, _isRetry = false) {
 
 // The network request itself — same logic as app.js api()
 //
-// OFFLINE BEHAVIOUR: this is a plain fetch with no queue. Offline, fetch
-// rejects outright and the write is lost — the caller just surfaces an error
-// toast. The blocking offline overlay was removed so connectivity loss no
-// longer stops a farmer mid-entry, but that only unblocks the UI; it does not
-// make writes survive being offline.
-//
-// The server half of offline sync already exists: POST /sync/batch takes a
-// JSON Lines queue and applies each line idempotently on a client-generated
-// entryId, so replaying a queue is safe. What's missing is the client half —
-// persisting failed writes locally and flushing them to that endpoint on
-// reconnect. src/pages/SyncPage.jsx is only a manual paste-the-payload tool
-// and isn't routed.
+// Offline writes don't come through here: api/logs.js falls back to the
+// IndexedDB queue (lib/offlineQueue.js), which flushes to POST /sync/batch.
 async function request(method, path, body, _isRetry = false, generation) {
   const { idToken } = getTokens();
   const headers = { 'content-type': 'application/json' };

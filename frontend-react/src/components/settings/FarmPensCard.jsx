@@ -176,7 +176,7 @@ export function FarmPensCard() {
                     aria-label={`${pen.name} capacity (birds)`}
                   />
                   <span
-                    className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap ${
+                    className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${
                       inUse.length
                         ? 'bg-[#F7FFE0] dark:bg-[#142312] text-[#3A4D00] dark:text-[#DFFF83] border-[#E3F5A8] dark:border-[#274220]'
                         : 'bg-stone-50 dark:bg-[#252A2E] text-stone-500 dark:text-[#64748B] border-stone-200 dark:border-[#2B3238]'

@@ -112,7 +112,7 @@ export function FarmBirdTypesCard() {
                         {BIRD_PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                       </select>
                       {used > 0 && (
-                        <span className="shrink-0 text-[11px] text-stone-500 dark:text-[#64748B] whitespace-nowrap">{used} batch{used === 1 ? '' : 'es'}</span>
+                        <span className="shrink-0 text-xs text-stone-500 dark:text-[#64748B] whitespace-nowrap">{used} batch{used === 1 ? '' : 'es'}</span>
                       )}
                       <button
                         type="button"

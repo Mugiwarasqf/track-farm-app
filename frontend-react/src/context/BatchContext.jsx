@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { getBatches, createBatch as apiCreateBatch, updateBatch as apiUpdateBatch, deleteBatch as apiDeleteBatch } from '../api/batches';
 import { useAuth } from './AuthContext';
+import { syncSupplements, forgetBatchSupplements } from '../lib/supplements';
+import { isNetworkError } from '../api/client';
 
 const BatchContext = createContext(null);
 const ONLINE_RELOAD_GAP_MS = 30 * 1000;
@@ -36,6 +38,7 @@ export function BatchProvider({ children }) {
       const list = data.batches || [];
       setBatches(list);
       setError(null);
+      syncSupplements(list.map((b) => b.batchId)).catch(() => {});
       // Auto-select first batch if none selected
       if (!currentBatchId && list.length > 0) {
         setCurrentBatchId(list[0].batchId);
@@ -75,6 +78,17 @@ export function BatchProvider({ children }) {
     return () => window.removeEventListener('online', onOnline);
   }, [isLoggedIn, loadBatches]);
 
+  // Deaths change birds alive (worked out by GET /batches): reload after one
+  // is logged, or after the offline queue sends entries.
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    const onLogs = (e) => {
+      if (['mortality', 'sync'].includes(e.detail?.resource)) loadBatches();
+    };
+    window.addEventListener('farmbook:logs-changed', onLogs);
+    return () => window.removeEventListener('farmbook:logs-changed', onLogs);
+  }, [isLoggedIn, loadBatches]);
+
   const selectBatch = useCallback((id) => {
     setCurrentBatchId(id);
     localStorage.setItem('farmbook_batchid', id);
@@ -108,11 +122,15 @@ export function BatchProvider({ children }) {
   }, []);
 
   const deleteBatch = useCallback(async (batchId) => {
+    // Fails loudly: the modal shows the error and the batch stays put,
+    // rather than vanishing here and coming back on the next reload.
     try {
       await apiDeleteBatch(batchId);
     } catch (err) {
-      console.warn('API delete batch failed, proceeding with state cleanup:', err);
+      if (isNetworkError(err)) throw new Error('No network. Connect and try deleting again.');
+      throw err;
     }
+    forgetBatchSupplements(batchId);
 
     setBatches((prev) => {
       const filtered = prev.filter((b) => b.batchId !== batchId);

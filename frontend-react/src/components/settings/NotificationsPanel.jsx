@@ -106,8 +106,8 @@ export function NotificationsPanel() {
           />
           <ToggleRow
             icon={ShieldCheck}
-            title="Medications & withdrawal periods"
-            description="Notices when vitamin/dewormer courses start and when egg or meat withdrawal periods safely end."
+            title="Medicines: safe-to-sell dates"
+            description="Tells you when eggs and meat are safe to sell again after a dewormer or medicine."
             checked={Boolean(prefs.medicationAlerts)}
             onChange={(val) => update('medicationAlerts', val)}
           />

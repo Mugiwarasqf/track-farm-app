@@ -16,7 +16,7 @@ import { useOfflineQueue } from '../../lib/useOfflineQueue';
 import { InventoryIcon } from '../ui/InventoryIcon';
 import { BatchIcon } from '../ui/BatchIcon';
 import { SettingsIcon } from '../ui/SettingsIcon';
-import { HistoryIcon } from '../ui/HistoryIcon';
+import { MoneyIcon } from '../ui/MoneyIcon';
 import { FarmIcon } from '../ui/FarmIcon';
 import { OfflineBanner } from '../pwa/OfflineBanner';
 import { UpdateBanner } from '../pwa/UpdateBanner';
@@ -29,11 +29,12 @@ import { EmailBounceBanner } from '../ui/EmailBounceBanner';
 
 const VIEW_TITLES = {
   '/dashboard': 'Farm Overview',
-  '/inventory': 'Inventory',
+  '/inventory': 'Store',
   '/history': 'History',
   '/batches': 'Batches',
   '/settings': 'Settings',
   '/notifications': 'Notifications',
+  '/money': 'Income & Expenses',
   '/batches/new': 'Create New Batch',
 };
 
@@ -116,7 +117,7 @@ export function AppShell() {
                 onClick={flush}
                 disabled={sending}
                 title="These entries are saved on this phone and will send by themselves"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-50 dark:bg-[#261B06] text-amber-800 dark:text-[#FCD34D] border border-amber-200 dark:border-[#4A350C] hover:bg-amber-100 dark:hover:bg-[#38280A] transition-colors cursor-pointer disabled:opacity-70"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-[#261B06] text-amber-800 dark:text-[#FCD34D] border border-amber-200 dark:border-[#4A350C] hover:bg-amber-100 dark:hover:bg-[#38280A] transition-colors cursor-pointer disabled:opacity-70"
               >
                 {sending ? (
                   <RefreshCw size={13} className="animate-spin shrink-0" />
@@ -221,8 +222,8 @@ export function AppShell() {
           {[
             { to: '/dashboard', icon: FarmIcon, label: 'Home' },
             { to: '/batches', icon: BatchIcon, label: 'Batches' },
-            { to: '/inventory', icon: InventoryIcon, label: 'Inventory' },
-            { to: '/history', icon: HistoryIcon, label: 'History' },
+            { to: '/inventory', icon: InventoryIcon, label: 'Store' },
+            { to: '/money', icon: MoneyIcon, label: 'Money' },
             { to: '/settings', icon: SettingsIcon, label: 'Settings' },
           ].map((item) => {
             const Icon = item.icon;
@@ -230,7 +231,7 @@ export function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className="flex flex-col items-center justify-center gap-0.5 py-1 min-w-13 text-[11px] font-semibold active:scale-95 transition-transform"
+                className="flex flex-col items-center justify-center gap-0.5 py-1 min-w-13 text-xs font-semibold active:scale-95 transition-transform"
               >
                 {({ isActive }) => (
                   <>

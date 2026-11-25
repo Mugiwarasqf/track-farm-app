@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, ChevronLeft, Check, ArrowRight, Droplets, AlertTriangle } from 'lucide-react';
+import { NairaInput } from './NairaInput';
+import { useMedicineStock } from '../../lib/useMedicineStock';
 import { CalendarPicker } from './CalendarPicker';
 import { PillIcon } from './PillIcon';
 import { useToast } from './Toast';
@@ -28,7 +30,7 @@ function addDays(iso, n) {
  *
  * The type picks sensible defaults (method, course length); the method
  * decides how the dose is written; dewormers ask for the withdrawal period.
- * Saved on this device only — there is no supplements endpoint yet.
+ * Saved on this phone at once, then sent to the server (lib/supplements.js).
  *
  * Props: isOpen, onClose, onSaved(list), batches, defaultBatchId, events
  */
@@ -51,6 +53,9 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
   const [withdrawalDays, setWithdrawalDays] = useState('');
   const [cost, setCost] = useState('');
   const [notes, setNotes] = useState('');
+  const [stockKey, setStockKey] = useState('');
+  const [packsUsed, setPacksUsed] = useState('1');
+  const { lines: medicineLines } = useMedicineStock({ enabled: isOpen });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,6 +73,8 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
     setWithdrawalDays('');
     setCost('');
     setNotes('');
+    setStockKey('');
+    setPacksUsed('1');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -97,6 +104,18 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
   const canContinue = date && batchId;
   const canSave = canContinue && type && product.trim() && Number(doseAmount) > 0;
 
+  // Vitamins in the store, this type first.
+  const vitaminStock = medicineLines
+    .filter((l) => l.kind === 'supplement')
+    .sort((a, b) => (b.supplementType === typeId) - (a.supplementType === typeId) || (b.left > 0) - (a.left > 0));
+  const stockLine = vitaminStock.find((l) => l.key === stockKey) || null;
+  const packs = Number(packsUsed) || 0;
+  const chooseStock = (key) => {
+    setStockKey(key);
+    const line = vitaminStock.find((l) => l.key === key);
+    if (line && !product.trim()) setProduct(line.name);
+  };
+
   const handleSave = () => {
     if (!canSave) return;
     const entry = {
@@ -112,7 +131,12 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
       durationDays: days,
       ...(reason ? { reason } : {}),
       ...(type.withdrawal && Number(withdrawalDays) > 0 ? { withdrawalDays: Number(withdrawalDays) } : {}),
-      ...(cost ? { costNaira: Number(cost) } : {}),
+      ...(stockKey && packs > 0 ? { stockKey, packsUsed: packs } : {}),
+      ...(cost
+        ? { costNaira: Number(cost) }
+        : stockLine?.avgPrice && packs > 0
+        ? { costNaira: Math.round(packs * stockLine.avgPrice) }
+        : {}),
       ...(notes.trim() ? { notes: notes.trim() } : {}),
     };
     const list = addSupplement(entry);
@@ -180,7 +204,7 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
                 <span className="text-sm font-bold text-[#3A4D00] dark:text-[#DFFF83]">
                   {days > 1 ? `${formatShort(date)} to ${formatShort(lastDay)}` : formatShort(date)}
                 </span>
-                <button type="button" onClick={() => setStep(1)} className="ml-auto text-[11px] font-bold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer">
+                <button type="button" onClick={() => setStep(1)} className="ml-auto text-xs font-bold text-[#4D6600] dark:text-[#DFFF83] hover:underline cursor-pointer">
                   Change
                 </button>
               </div>
@@ -267,8 +291,31 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
                       />
                       <span className="text-xs text-stone-600 dark:text-[#94A3B8]">{methodInfo.per}</span>
                     </div>
-                    <p className="text-[11px] text-stone-400 dark:text-[#64748B] mt-1.5">Use the dose on the product label.</p>
+                    <p className="text-xs text-stone-400 dark:text-[#64748B] mt-1.5">Use the dose on the product label.</p>
                   </div>
+
+                  {vitaminStock.length > 0 && (
+                    <div className="grid grid-cols-[1fr_7rem] gap-3">
+                      <div>
+                        <label className={LABEL}>Taken from your store?</label>
+                        <select value={stockKey} onChange={(e) => chooseStock(e.target.value)} className={`${FIELD} cursor-pointer`}>
+                          <option value="">No, bought for this batch</option>
+                          {vitaminStock.map((l) => (
+                            <option key={l.key} value={l.key}>{l.label} ({Math.max(l.left, 0)} left)</option>
+                          ))}
+                        </select>
+                      </div>
+                      {stockLine && (
+                        <div>
+                          <label className={LABEL}>Packs used</label>
+                          <input type="number" min="1" inputMode="numeric" value={packsUsed} onChange={(e) => setPacksUsed(e.target.value)} className={FIELD} />
+                        </div>
+                      )}
+                      {stockLine && packs > Math.max(stockLine.left, 0) && (
+                        <p className="col-span-2 text-xs text-amber-700 dark:text-amber-400 -mt-1">More than the {Math.max(stockLine.left, 0)} packs in your store.</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -277,14 +324,14 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
                     </div>
                     <div>
                       <label className={LABEL}>Cost (₦) <span className="text-stone-400 dark:text-[#64748B] font-normal">(optional)</span></label>
-                      <input type="number" min="0" inputMode="numeric" value={cost} onChange={(e) => setCost(e.target.value)} className={FIELD} placeholder="e.g. 3500" />
+                      <NairaInput value={cost} onChange={setCost} className={FIELD} placeholder="₦3,500" />
                     </div>
                   </div>
 
                   {type.withdrawal && (
                     <div className="rounded-2xl border border-amber-200 dark:border-[#4A350C] bg-amber-50/60 dark:bg-[#261B06] p-4 space-y-2">
                       <label className="text-xs font-bold text-amber-900 dark:text-[#FCD34D] flex items-center gap-1.5">
-                        <AlertTriangle size={14} /> Withdrawal period (days)
+                        <AlertTriangle size={14} /> Days before eggs or meat can be sold
                       </label>
                       <input
                         type="number"
@@ -295,10 +342,10 @@ export function SupplementModal({ isOpen, onClose, onSaved, batches: batchOption
                         className={`${FIELD} w-32`}
                         placeholder="From label"
                       />
-                      <p className="text-[11px] text-amber-900/80 dark:text-[#FCD34D]/80">
+                      <p className="text-xs text-amber-900/80 dark:text-[#FCD34D]/80">
                         {safeDate
                           ? `Don't sell or eat eggs or meat from this batch until ${formatShort(safeDate)}.`
-                          : 'Days after the last dose before eggs or meat are safe to sell. It is printed on the label.'}
+                          : 'It is printed on the label, often called the "withdrawal period".'}
                       </p>
                     </div>
                   )}
