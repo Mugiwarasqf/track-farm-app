@@ -212,11 +212,15 @@ Lambda triggers. See `infra/main.tf`'s header comment for the diagram.
   itself is kept on Namecheap, not migrated to Route 53, so validation
   records are added by hand (see `infra/acm.tf`'s header comment for the
   two-step apply this requires).
-- **Two AWS accounts, one codebase**: beta (543613943899, current
-  `trackfarm.cc` DNS owner) for manual pre-merge testing, prod
-  (685108783257) for the CI/CD pipeline. `infra/variables.tf`'s
+- **Two AWS accounts, one codebase**: beta (543613943899) for manual
+  pre-merge testing, prod (685108783257, current `trackfarm.cc` DNS
+  owner) for the CI/CD pipeline. `infra/variables.tf`'s
   `deploy_custom_domain` keeps only one environment claiming the domain at
-  a time. Each account's Terraform vars live in a named file
+  a time: `true` in `infra/prod.tfvars` and in the `DEPLOY_CUSTOM_DOMAIN`
+  GitHub variable that `ci.yml`/`cd.yml` read, `false` in beta's tfvars.
+  Never run prod with it false: on 25/11/2026 a CD run did, removing the
+  CloudFront alias and API custom domain and taking the site down until
+  re-applied with `true` and the `api` CNAME in Namecheap updated. Each account's Terraform vars live in a named file
   (`infra/terraform.tfvars` for beta, `infra/prod.tfvars` for prod, both
   gitignored) and backend config (`infra/backend-configs/{beta,prod}.hcl`,
   pointing at that account's own `trackfarm-tfstate-<account-id>` S3

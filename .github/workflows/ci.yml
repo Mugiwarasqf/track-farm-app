@@ -92,5 +92,6 @@ jobs:
             -var='domain_name=${{ vars.DOMAIN_NAME }}' \
             -var='ses_sender_email=${{ vars.SES_SENDER_EMAIL }}' \
             -var='vapid_public_key=${{ vars.VAPID_PUBLIC_KEY }}' \
-            -var='ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}'
+            -var='ses_test_recipient_emails=${{ secrets.SES_TEST_RECIPIENT_EMAILS }}' \
+            -var='deploy_custom_domain=${{ vars.DEPLOY_CUSTOM_DOMAIN }}'
         working-directory: infra
