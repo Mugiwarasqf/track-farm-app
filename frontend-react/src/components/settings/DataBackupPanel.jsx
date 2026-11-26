@@ -3,8 +3,8 @@ import { RefreshCw, CloudUpload, Download, TriangleAlert, FileText, Sheet } from
 import { useOfflineQueue } from '../../lib/useOfflineQueue';
 import { getFailedCount, subscribe } from '../../lib/offlineQueue';
 import { collectFarmData, saveFile, fileSlug } from '../../lib/farmData';
-import { EXPORT_TYPES, buildExportSections, toCsv } from '../../lib/exportRecords';
-import { downloadMultiTableReport } from '../../lib/report';
+import { EXPORT_TYPES, buildExportSections, buildOverview, buildBatchReports, buildFarmSections, toCsv } from '../../lib/exportRecords';
+import { downloadFarmReport } from '../../lib/report';
 import { useAuth } from '../../context/AuthContext';
 import { useBatches } from '../../context/BatchContext';
 import { useToast } from '../ui/Toast';
@@ -49,7 +49,7 @@ export function DataBackupPanel() {
     try {
       const data = await collectFarmData({ farm, batches });
       const backup = { app: 'FarmBook', version: 1, exportedAt: new Date().toISOString(), ...data };
-      saveFile(`farmbook-backup-${slug}-${today()}.json`, JSON.stringify(backup, null, 2), 'application/json');
+      saveFile(`trackfarm-backup-${slug}-${today()}.json`, JSON.stringify(backup, null, 2), 'application/json');
       toast('Backup saved to this device', 'success');
       warnAbout(data.warnings);
     } catch (err) {
@@ -65,15 +65,16 @@ export function DataBackupPanel() {
       const data = await collectFarmData({ farm, batches });
       const sections = buildExportSections(data, EXPORT_TYPES.map((t) => t.id));
       if (format === 'pdf') {
-        await downloadMultiTableReport({
-          filename: `farmbook-records-${slug}-${today()}.pdf`,
-          title: 'Farm Records',
-          subtitle: farm?.name || undefined,
-          sections,
+        await downloadFarmReport({
+          filename: `trackfarm-records-${slug}-${today()}.pdf`,
+          farm,
+          overview: buildOverview(data),
+          batches: buildBatchReports(data),
+          farmSections: buildFarmSections(data),
         });
       } else {
         sections.forEach((s) => {
-          saveFile(`farmbook-${s.id}-${slug}-${today()}.csv`, toCsv(s.headers, s.rows), 'text/csv;charset=utf-8');
+          saveFile(`trackfarm-${s.id}-${slug}-${today()}.csv`, toCsv(s.headers, s.total ? [...s.rows, s.total] : s.rows), 'text/csv;charset=utf-8');
         });
       }
       toast(format === 'pdf' ? 'Records downloaded as a PDF' : `${sections.length} CSV ${sections.length === 1 ? 'file' : 'files'} downloaded`, 'success');
