@@ -44,6 +44,7 @@ export const handler: ScheduledHandler = async () => {
 
   let sent = 0;
   let pushed = 0;
+  let emailFailed = 0;
   let skippedSuppressed = 0;
   let skippedNoFarmOrEmail = 0;
   let skippedDisabled = 0;
@@ -114,14 +115,20 @@ export const handler: ScheduledHandler = async () => {
       continue;
     }
 
-    await ses.send(
-      new SendEmailCommand({
-        Source: SENDER_EMAIL,
-        Destination: { ToAddresses: [email] },
-        Message: sesMessage(vaccinationReminderEmail(due, today)),
-      })
-    );
-    sent++;
+    // One bad address mustn't stop the rest of the run.
+    try {
+      await ses.send(
+        new SendEmailCommand({
+          Source: SENDER_EMAIL,
+          Destination: { ToAddresses: [email] },
+          Message: sesMessage(vaccinationReminderEmail(due, today)),
+        })
+      );
+      sent++;
+    } catch (err: any) {
+      emailFailed++;
+      logger.warn("vaccination_reminder_email_failed", { farmId, message: err?.message });
+    }
   }
 
   // The only way to confirm from CloudWatch alone that today's run actually
@@ -130,6 +137,7 @@ export const handler: ScheduledHandler = async () => {
     due: dueSoon.length,
     sent,
     pushed,
+    emailFailed,
     skippedSuppressed,
     skippedNoFarmOrEmail,
     skippedDisabled,

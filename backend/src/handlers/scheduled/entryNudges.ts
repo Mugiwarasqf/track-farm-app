@@ -72,6 +72,7 @@ export const handler: ScheduledHandler = async () => {
 
   let sent = 0;
   let pushed = 0;
+  let emailFailed = 0;
   let skippedSuppressed = 0;
   let skippedUpToDate = 0;
   let skippedNoActiveBatches = 0;
@@ -135,21 +136,28 @@ export const handler: ScheduledHandler = async () => {
       mostRecentLog,
       activeBatches.map((b) => String(b.name || "Unnamed batch"))
     );
-    await ses.send(
-      new SendEmailCommand({
-        Source: SENDER_EMAIL,
-        Destination: { ToAddresses: [farm.ownerEmail] },
-        Message: sesMessage(email),
-      })
-    );
-    logger.info("entry_nudge_sent", { farmId: farm.farmId, lastLogDate: mostRecentLog });
-    sent++;
+    // One bad address mustn't stop the rest of the run.
+    try {
+      await ses.send(
+        new SendEmailCommand({
+          Source: SENDER_EMAIL,
+          Destination: { ToAddresses: [farm.ownerEmail] },
+          Message: sesMessage(email),
+        })
+      );
+      logger.info("entry_nudge_sent", { farmId: farm.farmId, lastLogDate: mostRecentLog });
+      sent++;
+    } catch (err: any) {
+      emailFailed++;
+      logger.warn("entry_nudge_email_failed", { farmId: farm.farmId, message: err?.message });
+    }
   }
 
   logger.info("entry_nudges_run_complete", {
     farmsScanned: farms.length,
     sent,
     pushed,
+    emailFailed,
     skippedSuppressed,
     skippedUpToDate,
     skippedNoActiveBatches,
