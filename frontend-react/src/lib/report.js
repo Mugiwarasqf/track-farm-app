@@ -44,50 +44,162 @@ export async function downloadTableReport({ filename, title, subtitle, headers, 
 }
 
 /**
- * Several tables in one PDF, each under its own heading — the farm-wide
- * export. Landscape throughout, since some sections are wide.
- *
- * @param {object} report
- * @param {string} report.filename
- * @param {string} report.title
- * @param {string} [report.subtitle]
- * @param {Array<{ title: string, headers: string[], rows: Array<Array<string|number>> }>} report.sections
+ * The farm-wide export: a summary page, then one page per batch with its key
+ * figures and a single day-by-day table, then store purchases. Built from
+ * lib/exportRecords.js (buildOverview, buildBatchReports, buildFarmSections).
  */
-export async function downloadMultiTableReport({ filename, title, subtitle, sections }) {
+export async function downloadFarmReport({ filename, farm, overview, batches, farmSections }) {
   const [{ jsPDF }, { autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
-
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  drawHeader(doc, title, subtitle);
+  const W = doc.internal.pageSize.width;
+  const H = doc.internal.pageSize.height;
+  const RIGHT = W - LEFT;
+  const farmName = farm?.name || 'Your farm';
 
-  let y = 104;
-  for (const section of sections) {
-    // Start a section on a new page rather than strand its heading at the bottom.
-    if (y > doc.internal.pageSize.height - 120) {
-      doc.addPage();
-      y = 50;
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(...BRAND_GREEN);
-    doc.text(`${section.title} (${section.rows.length})`, LEFT, y);
-
+  const table = (startY, { headers, rows, total, columnStyles }) =>
     autoTable(doc, {
       ...tableStyle(doc),
-      startY: y + 8,
-      head: [section.headers],
-      body: section.rows.length ? cells(section.rows) : [[{ content: 'Nothing recorded', colSpan: section.headers.length }]],
+      styles: { ...tableStyle(doc).styles, cellPadding: 4.5 },
+      didDrawPage: undefined,
+      margin: { left: LEFT, right: LEFT, bottom: 40 },
+      startY,
+      head: [headers],
+      body: rows.length ? cells(rows) : [[{ content: 'Nothing recorded yet', colSpan: headers.length, styles: { textColor: MUTED } }]],
+      foot: total && rows.length ? [cells([total])[0]] : undefined,
+      footStyles: { fillColor: FOOT_FILL, textColor: CHARCOAL, fontStyle: 'bold' },
+      showFoot: 'lastPage',
+      columnStyles,
     });
-    y = doc.lastAutoTable.finalY + 32;
+
+  const heading = (text, y, size = 13, x = LEFT) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(size);
+    doc.setTextColor(...BRAND_GREEN);
+    doc.text(text, x, y);
+  };
+
+  const boxes = (items, y, h) => {
+    const gap = 10;
+    const w = (RIGHT - LEFT - gap * (items.length - 1)) / items.length;
+    items.forEach((item, i) => {
+      const x = LEFT + i * (w + gap);
+      doc.setFillColor(...STRIPE);
+      doc.setDrawColor(231, 229, 228);
+      doc.roundedRect(x, y, w, h, 6, 6, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...MUTED);
+      doc.text(item.label, x + 10, y + 16);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(h > 50 ? 15 : 11);
+      doc.setTextColor(...CHARCOAL);
+      doc.text(String(item.value), x + 10, y + (h > 50 ? 37 : 32));
+      if (item.hint) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        doc.text(item.hint, x + 10, y + 52);
+      }
+    });
+  };
+
+  // Page 1: the farm at a glance.
+  drawHeader(doc, 'Farm Records', [farmName, farm?.location].filter(Boolean).join(', '));
+  boxes(overview.tiles, 100, 64);
+
+  let y = 196;
+  const half = (RIGHT - LEFT - 24) / 2;
+  if (overview.money) {
+    heading('Income & expenses', y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...MUTED);
+    doc.text(overview.money.period, LEFT, y + 13);
+    autoTable(doc, {
+      ...tableStyle(doc),
+      didDrawPage: undefined,
+      startY: y + 20,
+      margin: { left: LEFT, right: W - LEFT - half },
+      head: [overview.money.headers],
+      body: overview.money.rows.map((r) =>
+        Array.isArray(r) ? r : r.cells.map((c) => ({ content: c, styles: { fontStyle: 'bold', fillColor: FOOT_FILL } }))
+      ),
+      columnStyles: { 1: { halign: 'right' } },
+    });
+  }
+
+  const ax = LEFT + half + 24;
+  heading('Needs attention', y, 13, ax);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  let ay = y + 22;
+  const notes = overview.attention.length ? overview.attention : ['Nothing overdue. No birds in the sick bay.'];
+  for (const line of notes.slice(0, 14)) {
+    const overdue = line.startsWith('Overdue');
+    doc.setTextColor(...(overdue ? DANGER : CHARCOAL));
+    const wrapped = doc.splitTextToSize(`•  ${line}`, half);
+    doc.text(wrapped, ax, ay);
+    ay += wrapped.length * 12 + 4;
+  }
+
+  // One page per batch.
+  for (const b of batches) {
+    doc.addPage();
+    heading(b.title, 50, 17);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...MUTED);
+    doc.text(b.subtitle, LEFT, 66);
+    boxes(b.facts.map(([label, value]) => ({ label, value })), 80, 44);
+
+    let ty = 140;
+    if (b.upcoming.length) {
+      doc.setFontSize(9.5);
+      for (const line of b.upcoming.slice(0, 4)) {
+        doc.setTextColor(...(line.startsWith('Overdue') ? DANGER : CHARCOAL));
+        doc.text(`•  ${line}`, LEFT, ty);
+        ty += 13;
+      }
+      ty += 4;
+    }
+    table(ty, { headers: b.headers, rows: b.rows, total: b.total, columnStyles: { 0: { cellWidth: 70 } } });
+  }
+
+  // Store purchases and anything not tied to a batch.
+  if (farmSections.some((s) => s.rows.length)) {
+    doc.addPage();
+    heading('Store purchases', 50, 17);
+    let sy = 74;
+    for (const s of farmSections) {
+      if (!s.rows.length) continue;
+      if (sy > H - 120) {
+        doc.addPage();
+        sy = 50;
+      }
+      heading(s.title, sy, 11);
+      table(sy + 8, s);
+      sy = doc.lastAutoTable.finalY + 28;
+    }
+  }
+
+  // Footer on every page, once the page count is known.
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(168, 162, 158);
+    doc.text(`TrackFarm  ·  ${farmName}`, LEFT, H - 20);
+    doc.text(`Page ${p} of ${pages}`, RIGHT, H - 20, { align: 'right' });
   }
 
   doc.save(filename);
-
-  addLocalNotification({
-    type: 'report_ready',
-    title: 'Report Ready',
-    message: `${title} has been downloaded as a PDF.`,
-  });
+  addLocalNotification({ type: 'report_ready', title: 'Report Ready', message: 'Farm records have been downloaded as a PDF.' });
 }
+
+const MUTED = [120, 113, 108];
+const DANGER = [190, 18, 60];
+const FOOT_FILL = [240, 250, 214];
 
 const LEFT = 40;
 

@@ -3,6 +3,9 @@ import { getSchedule } from '../api/schedule';
 import { getVaccinationRecords } from '../api/vaccinations';
 import { getSickBayCases } from '../api/sickBay';
 import { getFeedPurchases } from '../api/feedStock';
+import { getSales } from '../api/sales';
+import { getMedicinePurchases } from '../api/medicineStock';
+import { getSummary } from '../api/summary';
 import { loadSupplements } from './supplements';
 
 /**
@@ -62,8 +65,15 @@ export async function collectFarmData({ farm, batches }) {
   });
 
   const merge = (key) => perBatch.flatMap((p) => p[key]);
-  const feedStock = await safe(getFeedPurchases(), null);
+  const [feedStock, medicinePurchases, sales, summary] = await Promise.all([
+    safe(getFeedPurchases(), null),
+    safe(getMedicinePurchases(), null),
+    safe(getSales(), null),
+    farm?.farmId ? safe(getSummary(farm.farmId, 'month'), null) : null,
+  ]);
   if (feedStock === null) warnings.push('feed store purchases');
+  if (medicinePurchases === null) warnings.push('vaccine and vitamin purchases');
+  if (sales === null) warnings.push('sales');
 
   const batchNames = Object.fromEntries(batches.map((b) => [b.batchId, b.name]));
   const supplements = loadSupplements().map((s) => ({ ...s, batchName: batchNames[s.batchId] || '' }));
@@ -81,6 +91,9 @@ export async function collectFarmData({ farm, batches }) {
     schedule: merge('schedule'),
     sickBay: merge('sickBay'),
     feedStock: feedStock || [],
+    medicinePurchases: medicinePurchases || [],
+    sales: sales || [],
+    summary,
     supplements,
     warnings,
   };
